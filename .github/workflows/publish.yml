@@ -25,7 +25,10 @@ jobs:
           registry-url: "https://registry.npmjs.org"
 
       - name: Install
-        run: npm ci
+        # --legacy-peer-deps because @particle-academy/fancy-code@0.4.x peers
+        # on react-fancy@^2.0.0 while we depend on react-fancy@^3.0.0. The
+        # actual import surface is unaffected; this is just npm being strict.
+        run: npm ci --legacy-peer-deps
 
       - name: Build
         run: npm run build
