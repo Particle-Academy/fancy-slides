@@ -1,0 +1,31 @@
+/* fancy-slides — scoped baseline. Most styling is inline so themes can
+ * cascade resolution-independently; this file only provides the resets the
+ * package can't inline. */
+
+.fs-slide,
+.fs-viewer,
+.fs-thumbnail {
+  box-sizing: border-box;
+}
+
+.fs-slide *,
+.fs-slide *::before,
+.fs-slide *::after {
+  box-sizing: border-box;
+}
+
+.fs-viewer:focus {
+  outline: none;
+}
+
+/* Selection focus ring on elements inside the editor. */
+[data-fancy-slides-element] {
+  user-select: none;
+}
+
+[data-fancy-slides-element] textarea {
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+  user-select: text;
+}
