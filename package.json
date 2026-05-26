@@ -37,14 +37,14 @@
     "react-dom": "^18.0.0 || ^19.0.0",
     "@particle-academy/react-fancy": "^3.0.0",
     "@particle-academy/fancy-echarts": "^3.0.0",
-    "@particle-academy/fancy-code": "^1.0.0"
+    "@particle-academy/fancy-code": "^0.4.0"
   },
   "peerDependenciesMeta": {
     "@particle-academy/fancy-echarts": { "optional": true },
     "@particle-academy/fancy-code": { "optional": true }
   },
   "devDependencies": {
-    "@particle-academy/fancy-code": "^1.0.0",
+    "@particle-academy/fancy-code": "^0.4.0",
     "@particle-academy/fancy-echarts": "^3.0.0",
     "@particle-academy/react-fancy": "^3.0.0",
     "@types/react": "^19.0.0",
