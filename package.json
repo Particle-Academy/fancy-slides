@@ -11,15 +11,14 @@
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
-  "types": "./dist/index.d.ts",
   "exports": {
     ".": {
-      "import": { "types": "./dist/index.d.ts", "default": "./dist/index.js" },
-      "require": { "types": "./dist/index.d.cts", "default": "./dist/index.cjs" }
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
     },
     "./registry": {
-      "import": { "types": "./dist/registry.d.ts", "default": "./dist/registry.js" },
-      "require": { "types": "./dist/registry.d.cts", "default": "./dist/registry.cjs" }
+      "import": "./dist/registry.js",
+      "require": "./dist/registry.cjs"
     },
     "./styles.css": "./dist/styles.css"
   },
