@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
-import type { Slide, SlideElement, Theme } from "../../types";
+import type { Slide as SlideData, SlideElement, Theme } from "../../types";
 import { resolveTheme } from "../../theme/theme-utils";
 import { cn } from "../../utils/cn";
 import { TextElementRenderer } from "../elements/TextElement";
@@ -9,7 +9,7 @@ import { SlideContext, isDarkColor, type SlideContextValue } from "./slide-conte
 
 export interface SlideProps {
     /** The slide to render. */
-    slide: Slide;
+    slide: SlideData;
     /** Deck theme — controls fonts/colors/aspect-ratio when the slide doesn't override. */
     theme?: Theme;
     /** Pin the slide to this width in px. When omitted, the slide fills its container with auto-resize. */

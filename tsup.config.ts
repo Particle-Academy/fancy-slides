@@ -7,10 +7,7 @@ export default defineConfig({
     styles: "src/styles.css",
   },
   format: ["esm", "cjs"],
-  // dts: true — disabled for v0.1.3; rolldown's DTS parser chokes on
-  // certain TS+JSX combinations in this codebase. Will re-enable in a
-  // follow-up once we have repro.
-  dts: false,
+  dts: true,
   sourcemap: true,
   clean: true,
   external: [
