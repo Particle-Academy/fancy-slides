@@ -15,6 +15,7 @@ import type {
 import { resolveTheme } from "../../theme/theme-utils";
 import { elementId } from "../../utils/ids";
 import { useDeckState } from "../../hooks/use-deck-state";
+import { chartStarterOption, type ChartKind } from "../../utils/chart-presets";
 import { Slide } from "../Slide";
 import { SlideRail } from "../SlideRail";
 import { EditorToolbar } from "../EditorToolbar";
@@ -160,18 +161,14 @@ export function DeckEditor({
     );
 
     const insertChart = useCallback(
-        () =>
+        (kind: ChartKind = "bar") =>
             insert({
                 type: "chart",
                 x: 0.1,
                 y: 0.2,
                 w: 0.8,
                 h: 0.6,
-                option: {
-                    xAxis: { type: "category", data: ["Q1", "Q2", "Q3", "Q4"] },
-                    yAxis: { type: "value" },
-                    series: [{ type: "bar", data: [24, 38, 31, 47] }],
-                },
+                option: chartStarterOption(kind),
             } as Omit<ChartElement, "id">),
         [insert],
     );

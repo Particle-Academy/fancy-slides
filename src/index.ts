@@ -18,7 +18,7 @@ export { SlideRail } from "./components/SlideRail";
 export type { SlideRailProps } from "./components/SlideRail";
 
 export { EditorToolbar } from "./components/EditorToolbar";
-export type { EditorToolbarProps } from "./components/EditorToolbar";
+export type { EditorToolbarProps, ChartKind } from "./components/EditorToolbar";
 
 export { ElementInspector } from "./components/ElementInspector";
 export type { ElementInspectorProps } from "./components/ElementInspector";
@@ -48,6 +48,7 @@ export { defineTheme, resolveTheme } from "./theme/theme-utils";
 
 // Utils
 export { nextId, slideId, elementId, deckId } from "./utils/ids";
+export { chartStarterOption } from "./utils/chart-presets";
 
 // Types
 export type {

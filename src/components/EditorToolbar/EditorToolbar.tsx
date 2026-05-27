@@ -2,6 +2,15 @@ import { Action, Badge, Dropdown, Separator, Tooltip } from "@particle-academy/r
 import type { ShapeKind, Theme } from "../../types";
 import { builtinThemes } from "../../theme/default-theme";
 
+/**
+ * Starter chart-element preset. Picked from the toolbar Insert→Chart
+ * dropdown; expands into a starter `ChartElement.option` inside
+ * `DeckEditor.insertChart`. The actual saved `ChartElement` doesn't
+ * carry this — once the agent or user edits the option JSON, the
+ * "kind" is just whatever ECharts series.type the option says.
+ */
+export type ChartKind = "bar" | "line" | "pie" | "area" | "scatter";
+
 export interface EditorToolbarProps {
     /** Current deck title — shown left of the toolbar. */
     title: string;
@@ -16,8 +25,10 @@ export interface EditorToolbarProps {
     onInsertImage?: () => void;
     /** Insert a shape element. */
     onInsertShape?: (shape: ShapeKind) => void;
-    /** Insert a chart placeholder element (host renders via renderElement). */
-    onInsertChart?: () => void;
+    /** Insert a chart element. The `kind` arg picks a starter ECharts option
+     *  (`bar` / `line` / `pie` / `area` / `scatter`). Hosts can ignore the
+     *  arg if they only support a single chart type. */
+    onInsertChart?: (kind: ChartKind) => void;
     /** Insert a code element. */
     onInsertCode?: () => void;
     /** Insert a table element. */
@@ -84,9 +95,18 @@ export function EditorToolbar({
                 </Dropdown.Items>
             </Dropdown>
 
-            <Tooltip content="Insert chart">
-                <Action variant="ghost" size="sm" icon="bar-chart" onClick={onInsertChart} disabled={disabled} aria-label="Insert chart" />
-            </Tooltip>
+            <Dropdown>
+                <Dropdown.Trigger>
+                    <Action variant="ghost" size="sm" icon="bar-chart" iconTrailing="chevron-down" disabled={disabled} aria-label="Insert chart" />
+                </Dropdown.Trigger>
+                <Dropdown.Items>
+                    <Dropdown.Item onClick={() => onInsertChart?.("bar")}>Bar chart</Dropdown.Item>
+                    <Dropdown.Item onClick={() => onInsertChart?.("line")}>Line chart</Dropdown.Item>
+                    <Dropdown.Item onClick={() => onInsertChart?.("area")}>Area chart</Dropdown.Item>
+                    <Dropdown.Item onClick={() => onInsertChart?.("pie")}>Pie chart</Dropdown.Item>
+                    <Dropdown.Item onClick={() => onInsertChart?.("scatter")}>Scatter</Dropdown.Item>
+                </Dropdown.Items>
+            </Dropdown>
             <Tooltip content="Insert code">
                 <Action variant="ghost" size="sm" icon="code" onClick={onInsertCode} disabled={disabled} aria-label="Insert code" />
             </Tooltip>
