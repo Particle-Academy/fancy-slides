@@ -1,10 +1,11 @@
-import { useEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
 import type { Slide, SlideElement, Theme } from "../../types";
 import { resolveTheme } from "../../theme/theme-utils";
 import { cn } from "../../utils/cn";
 import { TextElementRenderer } from "../elements/TextElement";
 import { ImageElementRenderer } from "../elements/ImageElement";
 import { ShapeElementRenderer } from "../elements/ShapeElement";
+import { SlideContext, isDarkColor, type SlideContextValue } from "./slide-context";
 
 export interface SlideProps {
     /** The slide to render. */
@@ -87,49 +88,64 @@ export function Slide({
     const slideHeightPx = slideWidthPx / ratio;
 
     const bg = slide.background;
+    // The effective background colour used both for the slide div's `background`
+    // and for the dark-theme heuristic exposed via SlideContext.
+    const effectiveBg =
+        bg?.color ?? t.colors?.background ?? "#ffffff";
     const backgroundStyle: CSSProperties = {
         background: bg?.gradient
             ? bg.gradient
             : bg?.image
                 ? `${bg.color ?? "transparent"} url(${bg.image}) center/${bg.imageFit ?? "cover"} no-repeat`
-                : bg?.color ?? t.colors?.background ?? "#ffffff",
+                : effectiveBg,
     };
 
+    const slideContext = useMemo<SlideContextValue>(
+        () => ({
+            theme: t,
+            isDark: isDarkColor(effectiveBg),
+            slideWidthPx,
+        }),
+        [t, effectiveBg, slideWidthPx],
+    );
+
     return (
-        <div
-            ref={ref}
-            className={cn("fs-slide", className)}
-            style={{
-                width: width ? `${width}px` : "100%",
-                height: width ? `${width / ratio}px` : `${slideHeightPx}px`,
-                position: "relative",
-                overflow: "hidden",
-                color: t.colors?.text,
-                ...backgroundStyle,
-                ...style,
-            }}
-            data-fancy-slides-slide={slide.id}
-            onClick={(e) => {
-                if (e.target === e.currentTarget && onElementSelect) onElementSelect(null);
-            }}
-        >
-            {orderedElements(slide.elements).map((element) => (
-                <SlideElementHost
-                    key={element.id}
-                    element={element}
-                    theme={t}
-                    slideWidthPx={slideWidthPx}
-                    slideHeightPx={slideHeightPx}
-                    editing={editing}
-                    selected={selectedElementId === element.id}
-                    onContentChange={onElementContentChange}
-                    onSelect={onElementSelect}
-                    onMove={onElementMove}
-                    onResize={onElementResize}
-                    renderElement={renderElement}
-                />
-            ))}
-        </div>
+        <SlideContext.Provider value={slideContext}>
+            <div
+                ref={ref}
+                className={cn("fs-slide", className)}
+                style={{
+                    width: width ? `${width}px` : "100%",
+                    height: width ? `${width / ratio}px` : `${slideHeightPx}px`,
+                    position: "relative",
+                    overflow: "hidden",
+                    color: t.colors?.text,
+                    ...backgroundStyle,
+                    ...style,
+                }}
+                data-fancy-slides-slide={slide.id}
+                onClick={(e) => {
+                    if (e.target === e.currentTarget && onElementSelect) onElementSelect(null);
+                }}
+            >
+                {orderedElements(slide.elements).map((element) => (
+                    <SlideElementHost
+                        key={element.id}
+                        element={element}
+                        theme={t}
+                        slideWidthPx={slideWidthPx}
+                        slideHeightPx={slideHeightPx}
+                        editing={editing}
+                        selected={selectedElementId === element.id}
+                        onContentChange={onElementContentChange}
+                        onSelect={onElementSelect}
+                        onMove={onElementMove}
+                        onResize={onElementResize}
+                        renderElement={renderElement}
+                    />
+                ))}
+            </div>
+        </SlideContext.Provider>
     );
 }
 

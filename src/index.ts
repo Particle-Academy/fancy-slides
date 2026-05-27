@@ -1,6 +1,8 @@
 // Components
 export { Slide } from "./components/Slide";
 export type { SlideProps } from "./components/Slide";
+export { useSlideContext, useSlideTheme, useIsDarkSlide } from "./components/Slide/slide-context";
+export type { SlideContextValue } from "./components/Slide/slide-context";
 
 export { SlideViewer } from "./components/SlideViewer";
 export type { SlideViewerProps } from "./components/SlideViewer";
