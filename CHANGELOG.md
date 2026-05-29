@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.6.1 — 2026-05-29
+
+### Fixed
+- **Slide thumbnails now scale every element type uniformly.** `SlideThumbnail`
+  rendered the slide *at* the thumbnail width, which scaled font sizes and SVG
+  strokes (text / shape / image) but left embedded surfaces that render at fixed
+  internal font sizes — ECharts charts and the fancy-code editor — oversized and
+  overflowing inside the thumb. The thumbnail now renders the slide at its full
+  design width and applies a single CSS `transform: scale()` to the whole
+  output (the approach fancy-artboard uses for its piece previews), so the
+  chart / code / table / shape thumbs are faithful miniatures of the live slide.
+  The slide rail and presenter view (both built on `SlideThumbnail`) inherit the
+  fix. Embedded surfaces inside a thumb are also `pointer-events: none` so the
+  thumb's own click handler still owns interaction.
+
 ## 0.6.0 — 2026-05-29
 
 ### Changed
