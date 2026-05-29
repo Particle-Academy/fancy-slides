@@ -1,6 +1,6 @@
 import { useRef } from "react";
 import { Action, Card, ColorPicker, Heading, Input, Select, Separator, Slider, Switch, Tabs, Text, Textarea } from "@particle-academy/react-fancy";
-import type { ElementAnimation, Slide as SlideData, SlideBackground, SlideElement, SlideTransition, TextElement, TextStyle, ImageElement, ShapeElement, CodeElement, ChartElement, TableElement, EmbedElement } from "../../types";
+import type { ElementAnimation, Slide as SlideData, SlideBackground, SlideElement, SlideLayout, SlideTransition, TextElement, TextStyle, ImageElement, ShapeElement, CodeElement, ChartElement, TableElement, EmbedElement } from "../../types";
 import { chartModelFromOption, chartOptionFromModel, chartColorAt, type ChartKind, type ChartModel } from "../../utils/chart-presets";
 import { collectBuilds } from "../../utils/builds";
 
@@ -19,6 +19,8 @@ export interface ElementInspectorProps {
     onSetTransition?: (transition?: SlideTransition) => void;
     /** Set the slide's background. */
     onSetBackground?: (background?: SlideBackground) => void;
+    /** Set the slide's layout preset. */
+    onSetLayout?: (layout: SlideLayout) => void;
     /** Set or clear the selected element's entrance build animation. */
     onSetAnimation?: (animation?: ElementAnimation) => void;
     /** Set a specific element's build animation by id — used by the slide-level build-order list. */
@@ -31,11 +33,11 @@ export interface ElementInspectorProps {
  * react-fancy `Card`, `Tabs`, `Input`, `Select`, `Slider`, `ColorPicker`,
  * `Action`.
  */
-export function ElementInspector({ element, onPatch, onDelete, onLockToggle, slide, onSetTransition, onSetBackground, onSetAnimation, onSetElementAnimation }: ElementInspectorProps) {
+export function ElementInspector({ element, onPatch, onDelete, onLockToggle, slide, onSetTransition, onSetBackground, onSetLayout, onSetAnimation, onSetElementAnimation }: ElementInspectorProps) {
     // No element selected: show slide-level settings when a slide is available.
     if (!element) {
         if (slide) {
-            return <SlideSettings slide={slide} onSetTransition={onSetTransition} onSetBackground={onSetBackground} onSetElementAnimation={onSetElementAnimation} />;
+            return <SlideSettings slide={slide} onSetTransition={onSetTransition} onSetBackground={onSetBackground} onSetLayout={onSetLayout} onSetElementAnimation={onSetElementAnimation} />;
         }
         return (
             <div className="fs-inspector flex h-full flex-col border-l border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-900">
@@ -111,15 +113,35 @@ export function ElementInspector({ element, onPatch, onDelete, onLockToggle, sli
  * Lets a human set the slide's entrance transition (and, as a nicety, its
  * background color). Mirrors the ElementInspector look — same Card/Tabs shell.
  */
+const SLIDE_LAYOUTS: Array<{ value: SlideLayout; label: string }> = [
+    { value: "blank", label: "Blank" },
+    { value: "title", label: "Title" },
+    { value: "title-content", label: "Title + content" },
+    { value: "two-column", label: "Two column" },
+    { value: "section-divider", label: "Section divider" },
+    { value: "image-text", label: "Image + text" },
+    { value: "text-image", label: "Text + image" },
+    { value: "quote", label: "Quote" },
+];
+
+/** Which kind of background is active, for the background-mode switch. */
+function backgroundMode(bg: SlideBackground | undefined): "color" | "gradient" | "image" {
+    if (bg?.gradient) return "gradient";
+    if (bg?.image) return "image";
+    return "color";
+}
+
 function SlideSettings({
     slide,
     onSetTransition,
     onSetBackground,
+    onSetLayout,
     onSetElementAnimation,
 }: {
     slide: SlideData;
     onSetTransition?: (transition?: SlideTransition) => void;
     onSetBackground?: (background?: SlideBackground) => void;
+    onSetLayout?: (layout: SlideLayout) => void;
     onSetElementAnimation?: (elementId: string, animation?: ElementAnimation) => void;
 }) {
     const transition = slide.transition;
@@ -129,6 +151,7 @@ function SlideSettings({
         // "none" carries no extra knobs — store the bare kind.
         onSetTransition?.(merged.kind === "none" ? { kind: "none" } : merged);
     };
+    const bgMode = backgroundMode(slide.background);
 
     return (
         <div className="fs-inspector flex h-full w-full flex-col border-l border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900">
@@ -144,6 +167,24 @@ function SlideSettings({
             </div>
 
             <div className="flex-1 overflow-y-auto p-3">
+                {onSetLayout && (
+                    <Card padding="md" className="mb-3 !bg-white dark:!bg-zinc-950">
+                        <div className="space-y-3">
+                            <Heading as="h4" size="xs" className="!uppercase !tracking-wider !text-zinc-500">
+                                Layout
+                            </Heading>
+                            <Select
+                                label="Preset"
+                                list={SLIDE_LAYOUTS}
+                                value={slide.layout ?? "blank"}
+                                onValueChange={(v) => onSetLayout(v as SlideLayout)}
+                            />
+                            <Text size="xs" className="!text-zinc-500">
+                                The layout hint the deck commits to — carried through to the pptx export's slide layout.
+                            </Text>
+                        </div>
+                    </Card>
+                )}
                 <Card padding="md" className="!bg-white dark:!bg-zinc-950">
                     <div className="space-y-3">
                         <Heading as="h4" size="xs" className="!uppercase !tracking-wider !text-zinc-500">
@@ -193,12 +234,58 @@ function SlideSettings({
                             <Heading as="h4" size="xs" className="!uppercase !tracking-wider !text-zinc-500">
                                 Background
                             </Heading>
-                            <FieldLabel label="Color">
-                                <ColorPicker
-                                    value={slide.background?.color ?? "#ffffff"}
-                                    onChange={(c) => onSetBackground({ ...slide.background, color: c })}
+                            <Select
+                                label="Type"
+                                list={[
+                                    { value: "color", label: "Solid color" },
+                                    { value: "gradient", label: "Gradient" },
+                                    { value: "image", label: "Image" },
+                                ]}
+                                value={bgMode}
+                                onValueChange={(v) => {
+                                    // Switching type clears the other modes' fields so the
+                                    // background carries exactly one source (matches the writer).
+                                    if (v === "color") onSetBackground({ color: slide.background?.color ?? "#ffffff" });
+                                    else if (v === "gradient") onSetBackground({ gradient: slide.background?.gradient ?? "linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)" });
+                                    else onSetBackground({ image: slide.background?.image ?? "", imageFit: slide.background?.imageFit ?? "cover", color: slide.background?.color });
+                                }}
+                            />
+                            {bgMode === "color" && (
+                                <FieldLabel label="Color">
+                                    <ColorPicker
+                                        value={slide.background?.color ?? "#ffffff"}
+                                        onChange={(c) => onSetBackground({ color: c })}
+                                    />
+                                </FieldLabel>
+                            )}
+                            {bgMode === "gradient" && (
+                                <Textarea
+                                    label="CSS gradient"
+                                    value={slide.background?.gradient ?? ""}
+                                    onValueChange={(v) => onSetBackground({ gradient: v })}
+                                    rows={2}
                                 />
-                            </FieldLabel>
+                            )}
+                            {bgMode === "image" && (
+                                <>
+                                    <Textarea
+                                        label="Image URL"
+                                        value={slide.background?.image ?? ""}
+                                        onValueChange={(v) => onSetBackground({ ...slide.background, image: v })}
+                                        rows={2}
+                                    />
+                                    <Select
+                                        label="Fit"
+                                        list={[
+                                            { value: "cover", label: "Cover" },
+                                            { value: "contain", label: "Contain" },
+                                            { value: "fill", label: "Fill (stretch)" },
+                                        ]}
+                                        value={slide.background?.imageFit ?? "cover"}
+                                        onValueChange={(v) => onSetBackground({ ...slide.background, imageFit: v as SlideBackground["imageFit"] })}
+                                    />
+                                </>
+                            )}
                         </div>
                     </Card>
                 )}
@@ -485,6 +572,21 @@ function TextStyleControls({ element, onPatch }: { element: TextElement; onPatch
                 value={s.align ?? "left"}
                 onValueChange={(v) => setStyle({ align: v as TextStyle["align"] })}
             />
+            <Select
+                label="Vertical align"
+                list={[
+                    { value: "top", label: "Top" },
+                    { value: "middle", label: "Middle" },
+                    { value: "bottom", label: "Bottom" },
+                ]}
+                value={s.verticalAlign ?? "top"}
+                onValueChange={(v) => setStyle({ verticalAlign: v as TextStyle["verticalAlign"] })}
+            />
+            <Input label="Line height" type="number" value={String(s.lineHeight ?? 1.4)} onChange={(e) => setStyle({ lineHeight: parseFloat(e.target.value) || 1.4 })} />
+            <div className="flex gap-4">
+                <Switch label="Italic" checked={!!s.italic} onCheckedChange={(v) => setStyle({ italic: v })} />
+                <Switch label="Underline" checked={!!s.underline} onCheckedChange={(v) => setStyle({ underline: v })} />
+            </div>
             <FieldLabel label="Color"><ColorPicker value={s.color ?? "#0f172a"} onChange={(c) => setStyle({ color: c })} /></FieldLabel>
         </div>
     );
@@ -579,6 +681,7 @@ function ShapeStyleControls({ element, onPatch }: { element: ShapeElement; onPat
             <FieldLabel label="Fill"><ColorPicker value={element.fill ?? "#ffffff"} onChange={(c) => onPatch({ fill: c })} /></FieldLabel>
             <FieldLabel label="Stroke"><ColorPicker value={element.stroke ?? "#0f172a"} onChange={(c) => onPatch({ stroke: c })} /></FieldLabel>
             <Slider label="Stroke width" value={element.strokeWidth ?? 2} onValueChange={(v) => onPatch({ strokeWidth: Number(v) })} min={0} max={20} step={0.5} />
+            <Switch label="Dashed stroke" checked={!!element.dashed} onCheckedChange={(v) => onPatch({ dashed: v })} />
             {(element.shape === "rounded-rect" || element.shape === "rect") && (
                 <Slider label="Corner radius" value={element.radius ?? 0} onValueChange={(v) => onPatch({ radius: Number(v) })} min={0} max={40} />
             )}
@@ -601,6 +704,7 @@ function CodeStyleControls({ element, onPatch }: { element: CodeElement; onPatch
                 value={element.codeTheme ?? "auto"}
                 onValueChange={(v) => onPatch({ codeTheme: v })}
             />
+            <Switch label="Line numbers" checked={element.lineNumbers ?? true} onCheckedChange={(v) => onPatch({ lineNumbers: v })} />
         </div>
     );
 }

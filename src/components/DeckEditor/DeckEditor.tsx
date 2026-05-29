@@ -317,6 +317,7 @@ export function DeckEditor({
                             onLockToggle={(locked) => slide && elementIdSelected && ops.updateElement(slide.id, elementIdSelected, { locked } as Partial<SlideElement>)}
                             onSetTransition={(transition) => slide && ops.setTransition(slide.id, transition)}
                             onSetBackground={(background) => slide && ops.setBackground(slide.id, background)}
+                            onSetLayout={(layout) => slide && ops.setLayout(slide.id, layout)}
                             onSetAnimation={(animation) => slide && elementIdSelected && ops.setAnimation(slide.id, elementIdSelected, animation)}
                             onSetElementAnimation={(eid, animation) => slide && ops.setAnimation(slide.id, eid, animation)}
                         />

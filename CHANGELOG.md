@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.8.0 — 2026-05-29
+
+### Added — editor parity with the dark-slide pptx writer
+The ElementInspector now exposes every authoring knob the sibling `dark-slide`
+writer can emit, so a human (or agent) can compose anything the export supports:
+- **Slide layout picker** — all 8 presets (blank / title / title-content /
+  two-column / section-divider / image-text / text-image / quote) in slide
+  settings, wired to `slide_set_layout`.
+- **Backgrounds beyond solid color** — a type switch for solid color / CSS
+  gradient / image (+ cover/contain/fill `imageFit`), matching the writer's
+  `<p:bg>` gradient + blipFill support.
+- **Shape: dashed stroke** toggle.
+- **Code: line numbers** toggle (editor/viewer preview; default on).
+- **Text: vertical align, line height, italic & underline** toggles — rounding
+  out `TextStyle` so box typography matches what the writer emits.
+
+Already complete and unchanged: the Build (animation) tab covers every
+`AnimationEffect` (fade / fly-in / zoom / wipe), trigger, direction, duration,
+delay, order, and by-paragraph; theme switching lives in the toolbar.
+
 ## 0.7.0 — 2026-05-29
 
 ### Changed
