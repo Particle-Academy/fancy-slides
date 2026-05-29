@@ -1,9 +1,10 @@
 import { useId, type CSSProperties } from "react";
-import { ContentRenderer } from "@particle-academy/react-fancy";
+import { ContentRenderer, Editor } from "@particle-academy/react-fancy";
 import type { TextElement, Theme } from "../../../types";
 import { resolveTheme } from "../../../theme/theme-utils";
 import { splitParagraphs, type ParaReveal } from "../../../utils/builds";
 import { buildEnterStyle } from "../../Slide/builds-style";
+import { PRESENTATION_EDITOR_ACTIONS, normalizeSlideMarkdown } from "./editor-preset";
 
 export interface TextElementRendererProps {
     element: TextElement;
@@ -86,21 +87,64 @@ export function TextElementRenderer({
 
     // Edit mode is gated by selection: an unselected element in the editor
     // still shows the parsed markdown so the user sees the real layout.
-    // Clicking selects → textarea appears with the raw source, ready to edit.
+    // Clicking selects → the react-fancy Editor appears, a WYSIWYG rich-text
+    // surface tuned for presentations (bold / italic / heading / bullets).
+    // Edits emit markdown, normalized to the line-based paragraph model the
+    // slide content + dark-slide writer commit to. The Editor is keyed by the
+    // element id because it loads its value once on mount (it's uncontrolled
+    // after that), so selecting a different element remounts it with the right
+    // content. Scoped CSS strips the Editor's card chrome and matches the
+    // element's scaled typography so editing looks like the live slide.
     if (editing && selected) {
+        const fontPx = Math.round((style.fontSize ?? 28) * scale);
+        const lh = style.lineHeight ?? 1.4;
+        const editScope = scopeId;
         return (
-            <textarea
-                value={element.content}
-                onChange={(e) => onContentChange?.(e.target.value)}
+            <div
+                data-fs-edit-scope={editScope}
                 style={{
-                    ...css,
-                    whiteSpace: "pre-wrap",
-                    resize: "none",
-                    border: "none",
+                    width: "100%",
+                    height: "100%",
                     pointerEvents: "auto",
                     cursor: "text",
+                    textAlign: style.align ?? "left",
+                    color: style.color ?? t.colors?.text,
+                    fontFamily: style.fontFamily ?? t.fonts?.body,
                 }}
-            />
+                // Keep editing interactions (toolbar clicks, text selection) from
+                // bubbling to the Slide's element drag / deselect handlers.
+                onPointerDown={(e) => e.stopPropagation()}
+            >
+                <style>{`
+                    [data-fs-edit-scope="${editScope}"] [data-react-fancy-editor] {
+                        border: none; background: transparent; border-radius: 0;
+                        height: 100%; display: flex; flex-direction: column; overflow: hidden;
+                    }
+                    [data-fs-edit-scope="${editScope}"] [data-react-fancy-editor-toolbar] {
+                        background: rgba(244,244,245,0.85); border-radius: 6px 6px 0 0;
+                        padding: 2px 4px;
+                    }
+                    [data-fs-edit-scope="${editScope}"] [data-react-fancy-editor-content] {
+                        flex: 1; min-height: 0; padding: 4px 2px; overflow: auto;
+                        font-size: ${fontPx}px; line-height: ${lh};
+                    }
+                    [data-fs-edit-scope="${editScope}"] [data-react-fancy-editor-content] :is(p, ul, ol, li) { font-size: inherit; margin: 0; }
+                    [data-fs-edit-scope="${editScope}"] [data-react-fancy-editor-content] :where(p, li) + :where(p, li, ul, ol) { margin-top: 0.4em; }
+                    [data-fs-edit-scope="${editScope}"] [data-react-fancy-editor-content] h1 { font-size: 1.6em; font-weight: 700; margin: 0; }
+                    [data-fs-edit-scope="${editScope}"] [data-react-fancy-editor-content] h2 { font-size: 1.35em; font-weight: 700; margin: 0; }
+                    [data-fs-edit-scope="${editScope}"] [data-react-fancy-editor-content] h3 { font-size: 1.15em; font-weight: 600; margin: 0; }
+                `}</style>
+                <Editor
+                    key={element.id}
+                    value={element.content}
+                    onChange={(md) => onContentChange?.(normalizeSlideMarkdown(md))}
+                    outputFormat="markdown"
+                    lineSpacing={lh}
+                >
+                    <Editor.Toolbar actions={PRESENTATION_EDITOR_ACTIONS} />
+                    <Editor.Content />
+                </Editor>
+            </div>
         );
     }
 

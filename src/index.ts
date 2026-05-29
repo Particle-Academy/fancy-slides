@@ -28,7 +28,7 @@ export type { ElementInspectorProps } from "./components/ElementInspector";
 export { SpeakerNotes } from "./components/SpeakerNotes";
 export type { SpeakerNotesProps } from "./components/SpeakerNotes";
 
-export { TextElementRenderer } from "./components/elements/TextElement";
+export { TextElementRenderer, PRESENTATION_EDITOR_ACTIONS, normalizeSlideMarkdown } from "./components/elements/TextElement";
 export type { TextElementRendererProps } from "./components/elements/TextElement";
 
 export { ImageElementRenderer } from "./components/elements/ImageElement";

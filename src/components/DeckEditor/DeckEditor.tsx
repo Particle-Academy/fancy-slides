@@ -281,7 +281,7 @@ export function DeckEditor({
                                     slide={slide}
                                     theme={deck.theme}
                                     editing
-                                    onElementContentChange={(eid, content) => ops.updateElement(slide.id, eid, { content } as Partial<TextElement>)}
+                                    onElementContentChange={(eid, content) => ops.updateElement(slide.id, eid, { content, format: "markdown" } as Partial<TextElement>)}
                                     onElementSelect={setElementIdSelected}
                                     selectedElementId={elementIdSelected}
                                     onElementMove={(eid, x, y) => ops.moveElement(slide.id, eid, x, y)}

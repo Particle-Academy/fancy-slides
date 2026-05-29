@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.7.0 — 2026-05-29
+
+### Changed
+- **Inline text editing now uses react-fancy's `Editor`** (a WYSIWYG rich-text
+  surface) instead of a raw-source `<textarea>`. Selecting a text element on the
+  canvas opens the Editor with a presentation-tuned toolbar — **bold / italic /
+  heading / paragraph / bullet list** — so authors format text visually and see
+  the result as they type. The toolbar is intentionally limited to commands that
+  round-trip through markdown; box-level typography (alignment, color, font size,
+  line height) stays in the ElementInspector as `TextStyle` properties.
+- Edited text commits as `format: "markdown"`. The Editor's markdown output is
+  normalized to the **line-based paragraph model** the slide content + the
+  sibling `dark-slide` pptx writer commit to (`normalizeSlideMarkdown` collapses
+  the editor's blank-line paragraph separators to a single `\n`), so
+  "by paragraph" build reveals and per-paragraph pptx animations stay correct —
+  bullets are already one-per-line and unaffected. New exports:
+  `PRESENTATION_EDITOR_ACTIONS`, `normalizeSlideMarkdown`.
+- The inline Editor is scoped CSS-styled to drop its card chrome and match the
+  element's scaled typography, so editing looks like the live slide.
+
 ## 0.6.1 — 2026-05-29
 
 ### Fixed
