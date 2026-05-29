@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.5.1 — 2026-05-29
+
+### Fixed
+- Inserting a chart / code / table / embed element with no `renderElement`
+  wired no longer renders blank (which made the toolbar's Insert buttons look
+  broken). The Slide renderer shows a labeled placeholder for those optional
+  types when no renderer is provided — every insert is visible. Hosts that want
+  the real render still pass `renderElement` from
+  `@particle-academy/fancy-slides/registry`.
+
 ## 0.5.0 — 2026-05-29
 
 "By paragraph" text builds — a single TEXT element can now reveal its

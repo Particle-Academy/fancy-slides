@@ -353,7 +353,10 @@ function SlideElementHost({
         ...(buildAnimation ? buildEnterStyle(buildAnimation, buildDelay) : null),
     };
 
-    const inner = renderInner({ element, theme, slideWidthPx, editing, selected, onContentChange, paraReveal }) ?? renderElement?.(element, slideWidthPx);
+    const inner =
+        renderInner({ element, theme, slideWidthPx, editing, selected, onContentChange, paraReveal })
+        ?? renderElement?.(element, slideWidthPx)
+        ?? elementPlaceholder(element);
 
     return (
         <div
@@ -470,6 +473,45 @@ function renderInner({ element, theme, slideWidthPx, editing, selected, onConten
         default:
             return null;
     }
+}
+
+/**
+ * Built-in fallback for the optional element types (chart / code / table /
+ * embed) when the host hasn't wired a `renderElement` (or it returned
+ * undefined). Without this the element would render blank, making the
+ * toolbar's Insert buttons look broken. The placeholder keeps every insert
+ * visible and nudges the dev toward the default registry. Hosts that want the
+ * real chart/code/table render pass `renderElement` from
+ * `@particle-academy/fancy-slides/registry`.
+ */
+function elementPlaceholder(element: SlideElement): ReactNode {
+    if (element.type !== "chart" && element.type !== "code" && element.type !== "table" && element.type !== "embed") {
+        return null;
+    }
+    const label = element.type.charAt(0).toUpperCase() + element.type.slice(1);
+    return (
+        <div
+            style={{
+                width: "100%",
+                height: "100%",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "0.35em",
+                textAlign: "center",
+                padding: "0.5em",
+                boxSizing: "border-box",
+                border: "1px dashed currentColor",
+                borderRadius: 8,
+                opacity: 0.55,
+                overflow: "hidden",
+            }}
+        >
+            <span style={{ fontWeight: 600 }}>{label}</span>
+            <span style={{ fontSize: "0.7em", opacity: 0.8 }}>Pass renderElement to render</span>
+        </div>
+    );
 }
 
 function orderedElements(elements: SlideElement[]): SlideElement[] {
