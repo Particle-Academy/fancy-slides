@@ -25,9 +25,22 @@ export interface Deck {
     slides: Slide[];
     /** Visual theme for the whole deck. */
     theme: Theme;
+    /**
+     * Schema version the deck was authored against. Omitted == version 1 (the
+     * implicit version for decks created before versioning). Used by the
+     * serialize / parse helpers to migrate older shapes forward. Mirrors
+     * `dark-slide`'s `Schema::SCHEMA_VERSION`.
+     */
+    version?: number;
     /** Free-form metadata — `{ author, createdAt, updatedAt, tags, … }`. */
     metadata?: Record<string, unknown>;
 }
+
+/**
+ * Current deck schema version. Bump when a structural change needs migration on
+ * load. Kept in lockstep with the sibling `dark-slide` PHP package.
+ */
+export const SCHEMA_VERSION = 1;
 
 // ─── Slide ─────────────────────────────────────────────────────────────────
 
@@ -86,6 +99,13 @@ export interface ElementBase {
     locked?: boolean;
     /** Hide on this slide (still in the data — for animated reveals). */
     hidden?: boolean;
+    /**
+     * Whole-element hyperlink. When set, the element becomes a click target in
+     * the viewer (opens in a new tab) and the pptx writer emits an
+     * `<a:hlinkClick>` on the shape / picture. For rich inline links *within*
+     * text, use a markdown `[label](url)` in the text content instead.
+     */
+    href?: string;
     /** Entrance build animation — when present the element participates in the slide's build sequence. */
     animation?: ElementAnimation;
 }

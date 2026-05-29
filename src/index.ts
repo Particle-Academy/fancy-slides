@@ -54,6 +54,9 @@ export { chartStarterOption } from "./utils/chart-presets";
 export { collectBuilds, buildSteps, totalBuildSteps, visibleElementIds, buildsForStep, stepDelays, splitParagraphs, isByParagraph, paragraphReveals } from "./utils/builds";
 export type { Build, BuildStep, ParaReveal } from "./utils/builds";
 
+// Schema version constant
+export { SCHEMA_VERSION } from "./types";
+
 // Types
 export type {
     Deck,

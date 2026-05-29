@@ -91,7 +91,7 @@ export function ElementInspector({ element, onPatch, onDelete, onLockToggle, sli
                         </Tabs.Panel>
                         <Tabs.Panel value="layout">
                             <Card padding="md" className="!bg-white dark:!bg-zinc-950">
-                                <LayoutSection element={element} onPatch={onPatch} />
+                                <LayoutSection element={element} onPatch={onPatch} siblings={slide?.elements ?? []} />
                             </Card>
                         </Tabs.Panel>
                         <Tabs.Panel value="advanced">
@@ -369,7 +369,10 @@ function buildLabel(element: SlideElement): string {
 
 // ─── Sections ──────────────────────────────────────────────────────────────
 
-function LayoutSection({ element, onPatch }: { element: SlideElement; onPatch: (p: Partial<SlideElement>) => void }) {
+function LayoutSection({ element, onPatch, siblings }: { element: SlideElement; onPatch: (p: Partial<SlideElement>) => void; siblings: SlideElement[] }) {
+    const zs = siblings.map((e) => e.z ?? 0);
+    const bringToFront = () => onPatch({ z: (zs.length ? Math.max(...zs) : 0) + 1 });
+    const sendToBack = () => onPatch({ z: (zs.length ? Math.min(...zs) : 0) - 1 });
     return (
         <div className="space-y-3">
             <div className="grid grid-cols-2 gap-2">
@@ -380,7 +383,21 @@ function LayoutSection({ element, onPatch }: { element: SlideElement; onPatch: (
             </div>
             <Separator />
             <Slider label="Rotation" value={element.rotation ?? 0} onValueChange={(v) => onPatch({ rotation: Number(v) })} min={-180} max={180} />
-            <Input label="Z-index" type="number" value={String(element.z ?? 0)} onChange={(e) => onPatch({ z: parseInt(e.target.value, 10) || 0 })} />
+            <div className="flex items-end gap-2">
+                <Input label="Z-index" type="number" value={String(element.z ?? 0)} onChange={(e) => onPatch({ z: parseInt(e.target.value, 10) || 0 })} className="flex-1" />
+                <Action size="sm" variant="ghost" onClick={bringToFront} aria-label="Bring to front">Front</Action>
+                <Action size="sm" variant="ghost" onClick={sendToBack} aria-label="Send to back">Back</Action>
+            </div>
+            <Separator />
+            <Input
+                label="Link (href)"
+                value={element.href ?? ""}
+                placeholder="https://…"
+                onChange={(e) => onPatch({ href: e.target.value || undefined } as Partial<SlideElement>)}
+            />
+            <Text size="xs" className="!text-zinc-500">
+                Makes the whole element a click target in the viewer (opens a new tab) and exports as a pptx hyperlink. For links inside text, use markdown <code>[label](url)</code>.
+            </Text>
         </div>
     );
 }

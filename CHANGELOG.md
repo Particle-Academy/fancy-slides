@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.9.0 — 2026-05-29
+
+### Added — represent + edit a fuller deck (pptx round-trip)
+The editor already renders + edits everything `dark-slide`'s `PptxReader`
+extracts (text / image / shape / table + geometry, z-order, rotation,
+background, notes). This release rounds out the schema for richer decks:
+- **Whole-element hyperlinks** — new optional `ElementBase.href`. The viewer
+  makes the element a click target (opens a new tab); the inspector's Layout tab
+  has a "Link (href)" field. For inline links *inside* text, use markdown
+  `[label](url)`. Mirrored in `dark-slide`'s schema (0.5.1).
+- **Z-order convenience** — "Front" / "Back" buttons in the Layout tab that set
+  `z` above / below all siblings (no more hand-typing a z-index for overlapping
+  elements from an imported deck). The renderer already sorts by `z` + applies
+  `rotation`.
+- **Schema version** — new optional `Deck.version` + exported `SCHEMA_VERSION`
+  constant (foundation for the serialize / parse / migrate helpers landing next),
+  kept in lockstep with `dark-slide`.
+
 ## 0.8.0 — 2026-05-29
 
 ### Added — editor parity with the dark-slide pptx writer

@@ -353,10 +353,27 @@ function SlideElementHost({
         ...(buildAnimation ? buildEnterStyle(buildAnimation, buildDelay) : null),
     };
 
-    const inner =
+    const rendered =
         renderInner({ element, theme, slideWidthPx, editing, selected, onContentChange, paraReveal })
         ?? renderElement?.(element, slideWidthPx)
         ?? elementPlaceholder(element);
+
+    // Whole-element hyperlink — a click target in the viewer (never while
+    // editing, so the link doesn't swallow selection). Fills the element box.
+    const inner =
+        element.href && !editing ? (
+            <a
+                href={element.href}
+                target="_blank"
+                rel="noreferrer"
+                style={{ display: "block", width: "100%", height: "100%", color: "inherit", textDecoration: "inherit" }}
+                data-fancy-slides-href=""
+            >
+                {rendered}
+            </a>
+        ) : (
+            rendered
+        );
 
     return (
         <div
