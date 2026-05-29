@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState, type CSSProperties, type PointerE
 import type { ElementAnimation, Slide as SlideData, SlideElement, Theme } from "../../types";
 import { resolveTheme } from "../../theme/theme-utils";
 import { cn } from "../../utils/cn";
-import { buildSteps, stepDelays } from "../../utils/builds";
+import { buildSteps, stepDelays, paragraphReveals, type ParaReveal } from "../../utils/builds";
 import { TextElementRenderer } from "../elements/TextElement";
 import { ImageElementRenderer } from "../elements/ImageElement";
 import { ShapeElementRenderer } from "../elements/ShapeElement";
@@ -127,9 +127,13 @@ export function Slide({
         if (editing) return null;
         const steps = buildSteps(slide);
         if (steps.length === 0) return null;
-        const revealStep = new Map<string, number>(); // element id → 1-based step
+        const revealStep = new Map<string, number>(); // element id → FIRST 1-based step it reveals on
         steps.forEach((step, i) => {
-            for (const b of step.builds) revealStep.set(b.element.id, i + 1);
+            for (const b of step.builds) {
+                // By-paragraph elements appear across multiple steps; the
+                // element box becomes visible on its earliest paragraph's step.
+                if (!revealStep.has(b.element.id)) revealStep.set(b.element.id, i + 1);
+            }
         });
         // When `buildStep` is omitted (thumbnails, exports) the slide renders
         // fully built with NO entrance animation. When provided, the firing
@@ -138,7 +142,12 @@ export function Slide({
         const currentStep = driven ? buildStep : steps.length;
         const firing = driven ? steps[currentStep - 1] : undefined;
         const delays = firing ? stepDelays(firing.builds) : new Map<string, number>();
-        return { revealStep, currentStep, delays };
+        // Per-element paragraph reveal state (by-paragraph text builds). When
+        // undriven, every paragraph is revealed (fully-built, no animation).
+        const paraReveals = driven
+            ? paragraphReveals(slide, currentStep)
+            : new Map<string, ParaReveal>();
+        return { revealStep, currentStep, delays, paraReveals, driven };
     }, [editing, slide, buildStep]);
 
     return (
@@ -166,11 +175,17 @@ export function Slide({
                     let buildHidden = false;
                     let buildAnimation: ElementAnimation | undefined;
                     let buildDelay = 0;
+                    // By-paragraph reveal state for this element (text builds only).
+                    const paraReveal = buildInfo?.paraReveals.get(element.id);
                     if (buildInfo) {
                         const step = buildInfo.revealStep.get(element.id);
                         if (step !== undefined) {
                             if (buildInfo.currentStep < step) {
                                 buildHidden = true; // not yet built
+                            } else if (paraReveal) {
+                                // By-paragraph element: the box stays mounted from its
+                                // first paragraph onward; individual paragraphs hide /
+                                // animate inside the text renderer. No whole-box effect.
                             } else if (buildInfo.currentStep === step && element.animation) {
                                 // Revealing on the step that just fired → play the effect.
                                 buildAnimation = element.animation;
@@ -195,6 +210,7 @@ export function Slide({
                             renderElement={renderElement}
                             buildAnimation={buildAnimation}
                             buildDelay={buildDelay}
+                            paraReveal={paraReveal}
                         />
                     );
                 })}
@@ -219,6 +235,8 @@ interface SlideElementHostProps {
     buildAnimation?: ElementAnimation;
     /** Effective entrance delay (ms) resolved for with-prev / after-prev chaining. */
     buildDelay?: number;
+    /** Per-paragraph reveal state for a by-paragraph text build (text elements only). */
+    paraReveal?: ParaReveal;
 }
 
 /** Smallest allowed element size, as a fraction of the slide. */
@@ -254,6 +272,7 @@ function SlideElementHost({
     renderElement,
     buildAnimation,
     buildDelay = 0,
+    paraReveal,
 }: SlideElementHostProps) {
     const dragRef = useRef<DragState | null>(null);
 
@@ -334,7 +353,7 @@ function SlideElementHost({
         ...(buildAnimation ? buildEnterStyle(buildAnimation, buildDelay) : null),
     };
 
-    const inner = renderInner({ element, theme, slideWidthPx, editing, selected, onContentChange }) ?? renderElement?.(element, slideWidthPx);
+    const inner = renderInner({ element, theme, slideWidthPx, editing, selected, onContentChange, paraReveal }) ?? renderElement?.(element, slideWidthPx);
 
     return (
         <div
@@ -418,9 +437,10 @@ interface RenderInnerArgs {
     editing: boolean;
     selected: boolean;
     onContentChange?: (elementId: string, content: string) => void;
+    paraReveal?: ParaReveal;
 }
 
-function renderInner({ element, theme, slideWidthPx, editing, selected, onContentChange }: RenderInnerArgs): ReactNode | undefined {
+function renderInner({ element, theme, slideWidthPx, editing, selected, onContentChange, paraReveal }: RenderInnerArgs): ReactNode | undefined {
     switch (element.type) {
         case "text":
             return (
@@ -431,6 +451,7 @@ function renderInner({ element, theme, slideWidthPx, editing, selected, onConten
                     editing={editing}
                     selected={selected}
                     onContentChange={onContentChange ? (c) => onContentChange(element.id, c) : undefined}
+                    paraReveal={paraReveal}
                 />
             );
         case "image":

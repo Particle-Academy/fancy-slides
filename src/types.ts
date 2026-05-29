@@ -117,6 +117,16 @@ export interface ElementAnimation {
     delay?: number;
     /** Build order within the slide, ascending; ties broken by element array index. */
     order?: number;
+    /**
+     * Reveal a TEXT element one paragraph/line at a time (PowerPoint/Google
+     * Slides "By paragraph"). The element expands into one build per paragraph
+     * — the element's `content` split on `"\n"` (a trailing empty line is
+     * dropped). The first paragraph uses this animation's `trigger`; every
+     * subsequent paragraph reveals on a fresh click. Only meaningful for text
+     * elements; ignored for other types and when the element has 0/1 paragraphs
+     * (then it behaves like a normal single build).
+     */
+    byParagraph?: boolean;
 }
 
 export interface TextElement extends ElementBase {

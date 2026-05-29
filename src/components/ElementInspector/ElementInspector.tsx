@@ -1,5 +1,5 @@
 import { useRef } from "react";
-import { Action, Card, ColorPicker, Heading, Input, Select, Separator, Slider, Tabs, Text, Textarea } from "@particle-academy/react-fancy";
+import { Action, Card, ColorPicker, Heading, Input, Select, Separator, Slider, Switch, Tabs, Text, Textarea } from "@particle-academy/react-fancy";
 import type { ElementAnimation, Slide as SlideData, SlideBackground, SlideElement, SlideTransition, TextElement, TextStyle, ImageElement, ShapeElement, CodeElement, ChartElement, TableElement, EmbedElement } from "../../types";
 import { chartModelFromOption, chartOptionFromModel, chartColorAt, type ChartKind, type ChartModel } from "../../utils/chart-presets";
 import { collectBuilds } from "../../utils/builds";
@@ -84,7 +84,7 @@ export function ElementInspector({ element, onPatch, onDelete, onLockToggle, sli
                         </Tabs.Panel>
                         <Tabs.Panel value="build">
                             <Card padding="md" className="!bg-white dark:!bg-zinc-950">
-                                <AnimateSection animation={element.animation} onSetAnimation={onSetAnimation} />
+                                <AnimateSection animation={element.animation} onSetAnimation={onSetAnimation} isText={element.type === "text"} />
                             </Card>
                         </Tabs.Panel>
                         <Tabs.Panel value="layout">
@@ -327,9 +327,12 @@ const NO_ANIMATION = "none";
 function AnimateSection({
     animation,
     onSetAnimation,
+    isText,
 }: {
     animation?: ElementAnimation;
     onSetAnimation?: (animation?: ElementAnimation) => void;
+    /** Whether the selected element is a text element (gates the by-paragraph toggle). */
+    isText?: boolean;
 }) {
     if (!onSetAnimation) {
         return <Text size="sm" className="!text-zinc-500">Build animations aren't wired up in this editor.</Text>;
@@ -405,6 +408,13 @@ function AnimateSection({
                         value={String(animation?.order ?? 0)}
                         onChange={(e) => set({ order: parseInt(e.target.value, 10) || 0 })}
                     />
+                    {isText && (
+                        <Switch
+                            label="Animate by paragraph (one line per click)"
+                            checked={!!animation?.byParagraph}
+                            onCheckedChange={(v) => set({ byParagraph: v })}
+                        />
+                    )}
                     <Text size="xs" className="!text-zinc-500">
                         Builds reveal in ascending order. "On click" starts a new step; "with previous" plays alongside the step's lead; "after previous" follows it. Honors prefers-reduced-motion.
                     </Text>

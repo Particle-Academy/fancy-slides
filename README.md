@@ -94,8 +94,17 @@ element.animation = {
     duration: 500,         // ms
     delay: 0,              // ms
     order: 0,              // build order, ascending; ties broken by element index
+    byParagraph: false,    // text only — reveal one line/bullet per click
 };
 ```
+
+For a **text** element you can set `byParagraph: true` to reveal it one
+paragraph at a time (PowerPoint/Google Slides "By paragraph"). The element's
+`content` is split on `"\n"` (a trailing empty line is dropped) and expands into
+one build per line — the first line uses the element's own `trigger`, every
+subsequent line reveals on a fresh click. Each markdown line renders through the
+normal path, so a `- …` bullet line builds in as its own item. Toggle it from
+the Build tab when a text element has an effect selected.
 
 A slide's builds group into *click steps*: the first build and every
 `on-click` build opens a new step; `with-prev` plays alongside that step's lead

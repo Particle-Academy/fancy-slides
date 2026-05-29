@@ -51,8 +51,8 @@ export { defineTheme, resolveTheme } from "./theme/theme-utils";
 // Utils
 export { nextId, slideId, elementId, deckId } from "./utils/ids";
 export { chartStarterOption } from "./utils/chart-presets";
-export { collectBuilds, buildSteps, totalBuildSteps, visibleElementIds, buildsForStep, stepDelays } from "./utils/builds";
-export type { Build, BuildStep } from "./utils/builds";
+export { collectBuilds, buildSteps, totalBuildSteps, visibleElementIds, buildsForStep, stepDelays, splitParagraphs, isByParagraph, paragraphReveals } from "./utils/builds";
+export type { Build, BuildStep, ParaReveal } from "./utils/builds";
 
 // Types
 export type {

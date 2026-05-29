@@ -1,5 +1,42 @@
 # Changelog
 
+## 0.5.0 — 2026-05-29
+
+"By paragraph" text builds — a single TEXT element can now reveal its
+lines/bullets one per click (PowerPoint/Google Slides "By paragraph"), built on
+top of the per-element animation feature from 0.4.0.
+
+- **Schema**: new `byParagraph?: boolean` on `ElementAnimation` (only meaningful
+  for text elements). Shape stays aligned with the sibling `dark-slide` PHP
+  package.
+- **Build model** (`src/utils/builds.ts`): when a text element's animation has
+  `byParagraph: true`, `collectBuilds` expands it into ONE build per paragraph
+  — the element's `content` split on `"\n"` (a single trailing empty line is
+  dropped; 0/1 paragraphs falls back to a normal single build). The first
+  paragraph keeps the element's own `trigger` (so it can be with-prev /
+  after-prev relative to a prior element); every subsequent paragraph is
+  forced to `on-click` (one line per click) and stays contiguous, so all of an
+  element's paragraphs fire before the next element's builds. Each expanded
+  build carries a `paraIndex` and the owning element. New exports:
+  `splitParagraphs`, `isByParagraph`, `paragraphReveals`, and the `ParaReveal`
+  type. `totalBuildSteps` / `visibleElementIds` account for the per-paragraph
+  sub-steps automatically (an element is visible from its first paragraph's
+  step).
+- **Renderer**: `<Slide>` resolves a `ParaReveal` per by-paragraph text element
+  and hands it to `TextElementRenderer`, which splits `content` on `"\n"`,
+  renders each paragraph as its own block (markdown/html through the existing
+  ContentRenderer path, so a `- …` bullet line renders as its own item), shows
+  only the first K revealed paragraphs, and plays the element's effect on the
+  paragraph that just fired. The element box stays mounted from its first
+  paragraph onward (no whole-box entrance for by-paragraph elements). In
+  `editing` mode the full text always renders (no hiding).
+- **SlideViewer / PresenterView**: unchanged code — step math flows through the
+  expanded build list, so advancing reveals the next paragraph, and after the
+  last paragraph plus all other builds, advancing moves to the next slide.
+- **Editor**: the ElementInspector "Build" tab shows an "Animate by paragraph
+  (one line per click)" switch for TEXT elements once an effect is chosen
+  (hidden for non-text elements), wired to `animation.byParagraph`.
+
 ## 0.4.0 — 2026-05-29
 
 Per-element entrance animations (build steps) — elements can now reveal one
