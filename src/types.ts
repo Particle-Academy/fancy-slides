@@ -274,6 +274,7 @@ export type DeckOp =
     | { kind: "slide_set_layout"; id: string; layout: SlideLayout }
     | { kind: "slide_set_notes"; id: string; notes: string }
     | { kind: "slide_set_background"; id: string; background?: SlideBackground }
+    | { kind: "slide_set_transition"; id: string; transition?: SlideTransition }
     | { kind: "element_add"; slideId: string; element: SlideElement }
     | { kind: "element_remove"; slideId: string; elementId: string }
     | { kind: "element_update"; slideId: string; elementId: string; patch: Partial<SlideElement> }

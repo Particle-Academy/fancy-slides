@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.2.0 — 2026-05-29
+
+Slide transitions — the `SlideTransition` schema is now rendered, settable,
+and editable end to end.
+
+- **Viewer animation**: `SlideViewer` plays the incoming slide's
+  `transition` (falling back to `theme.defaultTransition`, else none) on
+  every index change. Supports `none` (instant), `fade` (opacity), `slide`
+  (translate in from a direction — defaults to the nav direction), and
+  `zoom` (scale 0.92→1 + fade). Implemented with pure-CSS keyframes on an
+  index-keyed wrapper around `<Slide>` (remount replays the enter
+  animation); default 400 ms, ease-out. Respects
+  `prefers-reduced-motion: reduce` — animation is fully disabled.
+- **`slide_set_transition` op**: new `DeckOp` member plus a
+  `setTransition(id, transition?)` helper on `DeckStateApi`, funneled
+  through the same pure reducer agents and the editor share.
+- **Editor control**: when a slide is selected but no element is, the
+  inspector now shows slide settings with a Transition control (kind /
+  direction / duration) and a background color picker, wired to
+  `ops.setTransition` / `ops.setBackground`.
+
 ## v0.1.3 — 2026-05-26
 
 Bug fixes for the slide renderer + editor pipeline.

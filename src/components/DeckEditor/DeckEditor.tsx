@@ -299,6 +299,7 @@ export function DeckEditor({
                     <div className="w-72 shrink-0 overflow-y-auto">
                         <ElementInspector
                             element={selectedElement}
+                            slide={slide ?? null}
                             onPatch={(patch) => slide && elementIdSelected && ops.updateElement(slide.id, elementIdSelected, patch)}
                             onDelete={() => {
                                 if (!slide || !elementIdSelected) return;
@@ -306,6 +307,8 @@ export function DeckEditor({
                                 setElementIdSelected(null);
                             }}
                             onLockToggle={(locked) => slide && elementIdSelected && ops.updateElement(slide.id, elementIdSelected, { locked } as Partial<SlideElement>)}
+                            onSetTransition={(transition) => slide && ops.setTransition(slide.id, transition)}
+                            onSetBackground={(background) => slide && ops.setBackground(slide.id, background)}
                         />
                     </div>
                 )}

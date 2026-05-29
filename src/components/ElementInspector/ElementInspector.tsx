@@ -1,8 +1,8 @@
 import { Action, Card, ColorPicker, Heading, Input, Select, Separator, Slider, Tabs, Text, Textarea } from "@particle-academy/react-fancy";
-import type { SlideElement, TextElement, TextStyle, ImageElement, ShapeElement, CodeElement, ChartElement, TableElement, EmbedElement } from "../../types";
+import type { Slide as SlideData, SlideBackground, SlideElement, SlideTransition, TextElement, TextStyle, ImageElement, ShapeElement, CodeElement, ChartElement, TableElement, EmbedElement } from "../../types";
 
 export interface ElementInspectorProps {
-    /** Element being inspected. `null` shows the empty state. */
+    /** Element being inspected. `null` falls back to slide settings (or the empty state). */
     element: SlideElement | null;
     /** Patch a property on the element. */
     onPatch: (patch: Partial<SlideElement>) => void;
@@ -10,6 +10,12 @@ export interface ElementInspectorProps {
     onDelete?: () => void;
     /** Lock toggle. */
     onLockToggle?: (locked: boolean) => void;
+    /** Selected slide — shown when no element is selected so the user can edit slide-level settings. */
+    slide?: SlideData | null;
+    /** Set the slide's entrance transition. */
+    onSetTransition?: (transition?: SlideTransition) => void;
+    /** Set the slide's background. */
+    onSetBackground?: (background?: SlideBackground) => void;
 }
 
 /**
@@ -18,8 +24,12 @@ export interface ElementInspectorProps {
  * react-fancy `Card`, `Tabs`, `Input`, `Select`, `Slider`, `ColorPicker`,
  * `Action`.
  */
-export function ElementInspector({ element, onPatch, onDelete, onLockToggle }: ElementInspectorProps) {
+export function ElementInspector({ element, onPatch, onDelete, onLockToggle, slide, onSetTransition, onSetBackground }: ElementInspectorProps) {
+    // No element selected: show slide-level settings when a slide is available.
     if (!element) {
+        if (slide) {
+            return <SlideSettings slide={slide} onSetTransition={onSetTransition} onSetBackground={onSetBackground} />;
+        }
         return (
             <div className="fs-inspector flex h-full flex-col border-l border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-900">
                 <Heading as="h3" size="xs" className="!uppercase !tracking-wider !text-zinc-500">
@@ -76,6 +86,107 @@ export function ElementInspector({ element, onPatch, onDelete, onLockToggle }: E
                         </Tabs.Panel>
                     </Tabs.Panels>
                 </Tabs>
+            </div>
+        </div>
+    );
+}
+
+// ─── Slide settings ─────────────────────────────────────────────────────────
+
+/**
+ * Shown in the inspector column when a slide is selected but no element is.
+ * Lets a human set the slide's entrance transition (and, as a nicety, its
+ * background color). Mirrors the ElementInspector look — same Card/Tabs shell.
+ */
+function SlideSettings({
+    slide,
+    onSetTransition,
+    onSetBackground,
+}: {
+    slide: SlideData;
+    onSetTransition?: (transition?: SlideTransition) => void;
+    onSetBackground?: (background?: SlideBackground) => void;
+}) {
+    const transition = slide.transition;
+    const kind = transition?.kind ?? "none";
+    const setTransition = (next: Partial<SlideTransition>) => {
+        const merged: SlideTransition = { kind, duration: transition?.duration, direction: transition?.direction, ...next };
+        // "none" carries no extra knobs — store the bare kind.
+        onSetTransition?.(merged.kind === "none" ? { kind: "none" } : merged);
+    };
+
+    return (
+        <div className="fs-inspector flex h-full w-full flex-col border-l border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900">
+            <div className="flex items-center justify-between border-b border-zinc-200 px-3 py-2 dark:border-zinc-800">
+                <div className="flex items-center gap-2">
+                    <Heading as="h3" size="xs" className="!font-mono !uppercase !tracking-wider !text-zinc-500">
+                        slide
+                    </Heading>
+                    <Text size="xs" className="!font-mono !text-zinc-400">
+                        #{slide.id.slice(-6)}
+                    </Text>
+                </div>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-3">
+                <Card padding="md" className="!bg-white dark:!bg-zinc-950">
+                    <div className="space-y-3">
+                        <Heading as="h4" size="xs" className="!uppercase !tracking-wider !text-zinc-500">
+                            Transition
+                        </Heading>
+                        <Select
+                            label="Kind"
+                            list={[
+                                { value: "none", label: "None" },
+                                { value: "fade", label: "Fade" },
+                                { value: "slide", label: "Slide" },
+                                { value: "zoom", label: "Zoom" },
+                            ]}
+                            value={kind}
+                            onValueChange={(v) => setTransition({ kind: v as SlideTransition["kind"] })}
+                        />
+                        {kind === "slide" && (
+                            <Select
+                                label="Direction"
+                                list={[
+                                    { value: "left", label: "From left" },
+                                    { value: "right", label: "From right" },
+                                    { value: "up", label: "From bottom" },
+                                    { value: "down", label: "From top" },
+                                ]}
+                                value={transition?.direction ?? "right"}
+                                onValueChange={(v) => setTransition({ direction: v as SlideTransition["direction"] })}
+                            />
+                        )}
+                        {kind !== "none" && (
+                            <Input
+                                label="Duration (ms)"
+                                type="number"
+                                value={String(transition?.duration ?? 400)}
+                                onChange={(e) => setTransition({ duration: parseInt(e.target.value, 10) || 400 })}
+                            />
+                        )}
+                        <Text size="xs" className="!text-zinc-500">
+                            Entrance animation played when this slide appears in the viewer. Falls back to the theme default. Honors prefers-reduced-motion.
+                        </Text>
+                    </div>
+                </Card>
+
+                {onSetBackground && (
+                    <Card padding="md" className="mt-3 !bg-white dark:!bg-zinc-950">
+                        <div className="space-y-3">
+                            <Heading as="h4" size="xs" className="!uppercase !tracking-wider !text-zinc-500">
+                                Background
+                            </Heading>
+                            <FieldLabel label="Color">
+                                <ColorPicker
+                                    value={slide.background?.color ?? "#ffffff"}
+                                    onChange={(c) => onSetBackground({ ...slide.background, color: c })}
+                                />
+                            </FieldLabel>
+                        </div>
+                    </Card>
+                )}
             </div>
         </div>
     );

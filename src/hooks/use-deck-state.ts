@@ -1,5 +1,5 @@
 import { useCallback, useMemo } from "react";
-import type { Deck, DeckOp, Slide, SlideElement, SlideLayout, Theme, SlideBackground } from "../types";
+import type { Deck, DeckOp, Slide, SlideElement, SlideLayout, Theme, SlideBackground, SlideTransition } from "../types";
 import { elementId, slideId } from "../utils/ids";
 
 /**
@@ -30,6 +30,7 @@ export interface DeckStateApi {
     setLayout: (id: string, layout: SlideLayout) => void;
     setNotes: (id: string, notes: string) => void;
     setBackground: (id: string, bg?: SlideBackground) => void;
+    setTransition: (id: string, transition?: SlideTransition) => void;
     /** Element-level helpers. */
     addElement: (slideId: string, element: Omit<SlideElement, "id"> & { id?: string }) => string;
     removeElement: (slideId: string, elementId: string) => void;
@@ -88,6 +89,7 @@ export function useDeckState({ value, onChange, onOp }: UseDeckStateOptions): De
             setLayout: (id, layout) => apply({ kind: "slide_set_layout", id, layout }),
             setNotes: (id, notes) => apply({ kind: "slide_set_notes", id, notes }),
             setBackground: (id, background) => apply({ kind: "slide_set_background", id, background }),
+            setTransition: (id, transition) => apply({ kind: "slide_set_transition", id, transition }),
             addElement: (slideId, element) => {
                 const id = element.id ?? elementId();
                 apply({ kind: "element_add", slideId, element: { ...element, id } as SlideElement });
@@ -136,6 +138,8 @@ export function reduce(deck: Deck, op: DeckOp): Deck {
             return { ...deck, slides: deck.slides.map((s) => (s.id === op.id ? { ...s, notes: op.notes } : s)) };
         case "slide_set_background":
             return { ...deck, slides: deck.slides.map((s) => (s.id === op.id ? { ...s, background: op.background } : s)) };
+        case "slide_set_transition":
+            return { ...deck, slides: deck.slides.map((s) => (s.id === op.id ? { ...s, transition: op.transition } : s)) };
         case "element_add":
             return {
                 ...deck,
