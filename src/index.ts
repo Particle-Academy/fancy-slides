@@ -53,6 +53,8 @@ export { nextId, slideId, elementId, deckId } from "./utils/ids";
 export { chartStarterOption } from "./utils/chart-presets";
 export { collectBuilds, buildSteps, totalBuildSteps, visibleElementIds, buildsForStep, stepDelays, splitParagraphs, isByParagraph, paragraphReveals } from "./utils/builds";
 export type { Build, BuildStep, ParaReveal } from "./utils/builds";
+export { serializeDeck, parseDeck, validateDeck, migrateDeck } from "./utils/serialize";
+export type { DeckValidation } from "./utils/serialize";
 
 // Schema version constant
 export { SCHEMA_VERSION } from "./types";

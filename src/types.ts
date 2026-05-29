@@ -329,6 +329,8 @@ export interface DeckActivity {
 export type DeckOp =
     | { kind: "deck_set_title"; title: string }
     | { kind: "deck_apply_theme"; theme: Theme }
+    /** Replace the entire deck atomically — stream a full presentation IN in one op. */
+    | { kind: "deck_set"; deck: Deck }
     | { kind: "slide_add"; index: number; slide: Slide }
     | { kind: "slide_remove"; id: string }
     | { kind: "slide_reorder"; id: string; toIndex: number }

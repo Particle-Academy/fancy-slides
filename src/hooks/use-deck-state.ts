@@ -22,6 +22,8 @@ export interface DeckStateApi {
     /** Deck-level helpers. */
     setTitle: (title: string) => void;
     applyTheme: (theme: Theme) => void;
+    /** Replace the entire deck — stream a full presentation in atomically. */
+    setDeck: (deck: Deck) => void;
     /** Slide-level helpers. */
     addSlide: (index?: number, partial?: Partial<Slide>) => string;
     duplicateSlide: (id: string) => string;
@@ -59,6 +61,7 @@ export function useDeckState({ value, onChange, onOp }: UseDeckStateOptions): De
             apply,
             setTitle: (title) => apply({ kind: "deck_set_title", title }),
             applyTheme: (theme) => apply({ kind: "deck_apply_theme", theme }),
+            setDeck: (deck) => apply({ kind: "deck_set", deck }),
             addSlide: (index, partial) => {
                 const id = partial?.id ?? slideId();
                 const slide: Slide = {
@@ -121,6 +124,10 @@ export function reduce(deck: Deck, op: DeckOp): Deck {
             return { ...deck, title: op.title };
         case "deck_apply_theme":
             return { ...deck, theme: op.theme };
+        case "deck_set":
+            // Replace the whole deck — streaming a full presentation in. The
+            // previous deck is what an undo entry would snapshot.
+            return op.deck;
         case "slide_add": {
             const slides = [...deck.slides];
             slides.splice(Math.max(0, Math.min(slides.length, op.index)), 0, op.slide);

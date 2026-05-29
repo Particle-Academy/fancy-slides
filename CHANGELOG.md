@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.10.0 — 2026-05-29
+
+### Added — stream a full presentation in / out
+- **`deck_set` op** — a new `DeckOp` (+ `DeckStateApi.setDeck`) that replaces the
+  entire deck atomically, so a host or agent can stream a full presentation IN
+  in one step instead of reconstructing it from N granular ops. The prior deck
+  is what an undo entry snapshots.
+- **Serialization helpers** — `serializeDeck(deck, pretty?)`, `parseDeck(json)`,
+  `validateDeck(deck)` (forgiving structural check → `{ ok, errors }`), and
+  `migrateDeck(deck)` (forward-migration shim keyed on `Deck.version` /
+  `SCHEMA_VERSION`). `parseDeck` migrates + validates and throws a descriptive
+  error on malformed input. Streaming OUT stays `value` / `onChange` (or
+  `serializeDeck`); streaming IN is `parseDeck` → `value`, or the `deck_set` op.
+
+The companion `deck_set` MCP tool ships in `agent-integrations` so agents have
+the same full-state import the human editor has.
+
 ## 0.9.0 — 2026-05-29
 
 ### Added — represent + edit a fuller deck (pptx round-trip)
