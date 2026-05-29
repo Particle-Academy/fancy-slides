@@ -1,5 +1,37 @@
 # Changelog
 
+## 0.3.0 — 2026-05-29
+
+Fully UI-driven element editing — no more hand-editing raw JSON for tables and
+charts, and images gain upload + crop.
+
+- **Table editor**: `TableStyleControls` is now a real grid. Columns render as
+  editable label inputs with per-column remove + an "Add column" button that
+  mints a stable unique key (`col2`, `col3`, …); editing a label never touches
+  the key. Rows are an editable cell-per-column grid with add/remove. Adding a
+  column seeds an empty value on every row; removing one deletes that key from
+  every row. A collapsed "Edit as JSON" `<details>` keeps the raw escape hatch.
+- **Chart editor**: `ChartStyleControls` replaces the raw ECharts JSON textarea
+  with a friendly editor — a chart-type `<Select>` (bar / line / area / pie /
+  scatter), a Categories editor + multi-series editor (name, color, one value
+  per category) for cartesian charts, and a slice list for pie. Switching type
+  preserves data where possible and rebuilds a clean option via new
+  `chartModelFromOption` / `chartOptionFromModel` helpers in `chart-presets`.
+  Options too custom to parse show a notice and fall back to the JSON editor,
+  which is still available under an "Advanced" `<details>`.
+- **Image editor**: `ImageStyleControls` adds an "Upload image" button (hidden
+  `<input type=file>` → FileReader data-URI → `element.src`), keeping the URL
+  field, plus a crop control — four `<Slider>`s for `crop` `{x,y,w,h}` (0..1)
+  and a "Clear crop" button.
+- **Image crop rendering**: `ImageElementRenderer` now honors `crop`, clipping
+  an inner scaled/translated `<img>` so the crop window fills the box in both
+  the editor and the viewer.
+- **Insert / icon audit**: verified every toolbar Insert handler produces a
+  valid, auto-selected element and every react-fancy icon slug (`type`,
+  `image`, `square`, `bar-chart`, `code`, `table`, `chevron-down`, `play`,
+  `upload`, `plus`, `x`) resolves; `iconTrailing` confirmed as a supported
+  `Action` prop. No fixes required.
+
 ## 0.2.0 — 2026-05-29
 
 Slide transitions — the `SlideTransition` schema is now rendered, settable,

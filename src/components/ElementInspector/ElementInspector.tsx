@@ -1,5 +1,7 @@
+import { useRef } from "react";
 import { Action, Card, ColorPicker, Heading, Input, Select, Separator, Slider, Tabs, Text, Textarea } from "@particle-academy/react-fancy";
 import type { Slide as SlideData, SlideBackground, SlideElement, SlideTransition, TextElement, TextStyle, ImageElement, ShapeElement, CodeElement, ChartElement, TableElement, EmbedElement } from "../../types";
+import { chartModelFromOption, chartOptionFromModel, chartColorAt, type ChartKind, type ChartModel } from "../../utils/chart-presets";
 
 export interface ElementInspectorProps {
     /** Element being inspected. `null` falls back to slide settings (or the empty state). */
@@ -294,8 +296,40 @@ function TextStyleControls({ element, onPatch }: { element: TextElement; onPatch
 }
 
 function ImageStyleControls({ element, onPatch }: { element: ImageElement; onPatch: (p: Partial<ImageElement>) => void }) {
+    const fileRef = useRef<HTMLInputElement>(null);
+    const crop = element.crop;
+
+    const onFile = (file: File | undefined) => {
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = () => {
+            if (typeof reader.result === "string") onPatch({ src: reader.result });
+        };
+        reader.readAsDataURL(file);
+    };
+
+    const setCrop = (next: Partial<NonNullable<ImageElement["crop"]>>) => {
+        const base = crop ?? { x: 0, y: 0, w: 1, h: 1 };
+        onPatch({ crop: { ...base, ...next } });
+    };
+
     return (
         <div className="space-y-3">
+            {/* Hidden native file input, triggered by the Action below. */}
+            <input
+                ref={fileRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => {
+                    onFile(e.target.files?.[0]);
+                    // Allow re-selecting the same file.
+                    e.target.value = "";
+                }}
+            />
+            <Action size="sm" variant="ghost" icon="upload" onClick={() => fileRef.current?.click()}>
+                Upload image
+            </Action>
             <Textarea label="Image URL" value={element.src} onValueChange={(v) => onPatch({ src: v })} rows={2} />
             <Input label="Alt text" value={element.alt ?? ""} onChange={(e) => onPatch({ alt: e.target.value })} />
             <Select
@@ -309,6 +343,24 @@ function ImageStyleControls({ element, onPatch }: { element: ImageElement; onPat
                 value={element.fit ?? "contain"}
                 onValueChange={(v) => onPatch({ fit: v as ImageElement["fit"] })}
             />
+            <Separator />
+            <div className="flex items-center justify-between">
+                <Heading as="h4" size="xs" className="!uppercase !tracking-wider !text-zinc-500">
+                    Crop
+                </Heading>
+                {crop && (
+                    <Action size="xs" variant="ghost" onClick={() => onPatch({ crop: undefined })}>
+                        Clear crop
+                    </Action>
+                )}
+            </div>
+            <Slider label="X" value={crop?.x ?? 0} onValueChange={(v) => setCrop({ x: Number(v) })} min={0} max={1} step={0.01} showValue />
+            <Slider label="Y" value={crop?.y ?? 0} onValueChange={(v) => setCrop({ y: Number(v) })} min={0} max={1} step={0.01} showValue />
+            <Slider label="Width" value={crop?.w ?? 1} onValueChange={(v) => setCrop({ w: Number(v) })} min={0.01} max={1} step={0.01} showValue />
+            <Slider label="Height" value={crop?.h ?? 1} onValueChange={(v) => setCrop({ h: Number(v) })} min={0.01} max={1} step={0.01} showValue />
+            <Text size="xs" className="!text-zinc-500">
+                Crop is a window into the source image (0..1). Width/height shrink the visible region; X/Y pan it.
+            </Text>
         </div>
     );
 }
@@ -359,54 +411,319 @@ function CodeStyleControls({ element, onPatch }: { element: CodeElement; onPatch
 }
 
 function ChartStyleControls({ element, onPatch }: { element: ChartElement; onPatch: (p: Partial<ChartElement>) => void }) {
+    const model = chartModelFromOption(element.option);
+    const writeModel = (m: ChartModel) => onPatch({ option: chartOptionFromModel(m) });
+
     return (
         <div className="space-y-3">
-            <Text size="sm" className="!text-zinc-500">
-                Chart option is JSON — paste any ECharts option here.
-            </Text>
-            <Textarea
-                label="ECharts option (JSON)"
-                value={JSON.stringify(element.option, null, 2)}
-                onValueChange={(v) => {
-                    try {
-                        onPatch({ option: JSON.parse(v) });
-                    } catch {
-                        /* ignore invalid JSON while typing */
-                    }
-                }}
-                rows={10}
+            {model ? (
+                <ChartModelEditor model={model} onChange={writeModel} />
+            ) : (
+                <Text size="sm" className="rounded-md bg-amber-50 p-2 !text-amber-700 dark:bg-amber-950/40 dark:!text-amber-400">
+                    This chart's option is too custom for the visual editor. Edit it as JSON below.
+                </Text>
+            )}
+
+            <details className="rounded-md border border-zinc-200 dark:border-zinc-800">
+                <summary className="cursor-pointer select-none px-2 py-1.5 text-xs font-medium text-zinc-600 dark:text-zinc-400">
+                    Advanced — edit option JSON
+                </summary>
+                <div className="p-2 pt-0">
+                    <Textarea
+                        label="ECharts option (JSON)"
+                        value={JSON.stringify(element.option, null, 2)}
+                        onValueChange={(v) => {
+                            try {
+                                onPatch({ option: JSON.parse(v) });
+                            } catch {
+                                /* ignore invalid JSON while typing */
+                            }
+                        }}
+                        rows={10}
+                    />
+                </div>
+            </details>
+        </div>
+    );
+}
+
+const CHART_TYPE_OPTIONS = [
+    { value: "bar", label: "Bar" },
+    { value: "line", label: "Line" },
+    { value: "area", label: "Area" },
+    { value: "pie", label: "Pie" },
+    { value: "scatter", label: "Scatter" },
+];
+
+function ChartModelEditor({ model, onChange }: { model: ChartModel; onChange: (m: ChartModel) => void }) {
+    const setKind = (kind: ChartKind) => {
+        if (kind === model.kind) return;
+        // Switching to/from pie reshapes the data; preserve what we can.
+        if (kind === "pie") {
+            const first = model.series[0];
+            const slices = model.slices.length
+                ? model.slices
+                : (model.categories.length
+                    ? model.categories.map((name, i) => ({ name, value: first?.values[i] ?? 0 }))
+                    : [{ name: "Slice 1", value: 1 }]);
+            onChange({ ...model, kind, slices });
+            return;
+        }
+        if (model.kind === "pie") {
+            const categories = model.slices.length ? model.slices.map((s) => s.name) : ["A", "B", "C"];
+            const values = model.slices.length ? model.slices.map((s) => s.value) : [1, 2, 3];
+            onChange({ ...model, kind, categories, series: [{ name: "Series 1", color: chartColorAt(0), values }] });
+            return;
+        }
+        onChange({ ...model, kind });
+    };
+
+    return (
+        <div className="space-y-3">
+            <Select
+                label="Chart type"
+                list={CHART_TYPE_OPTIONS}
+                value={model.kind}
+                onValueChange={(v) => setKind(v as ChartKind)}
             />
+            {model.kind === "pie" ? (
+                <PieSliceEditor model={model} onChange={onChange} />
+            ) : (
+                <CartesianChartEditor model={model} onChange={onChange} />
+            )}
+        </div>
+    );
+}
+
+function PieSliceEditor({ model, onChange }: { model: ChartModel; onChange: (m: ChartModel) => void }) {
+    const slices = model.slices;
+    const update = (i: number, next: Partial<{ name: string; value: number }>) => {
+        const copy = slices.map((s, idx) => (idx === i ? { ...s, ...next } : s));
+        onChange({ ...model, slices: copy });
+    };
+    const remove = (i: number) => onChange({ ...model, slices: slices.filter((_, idx) => idx !== i) });
+    const add = () => onChange({ ...model, slices: [...slices, { name: `Slice ${slices.length + 1}`, value: 0 }] });
+
+    return (
+        <div className="space-y-2">
+            <Heading as="h4" size="xs" className="!uppercase !tracking-wider !text-zinc-500">Slices</Heading>
+            {slices.map((s, i) => (
+                <div key={i} className="flex items-end gap-2">
+                    <div className="flex-1"><Input label={i === 0 ? "Name" : undefined} value={s.name} onChange={(e) => update(i, { name: e.target.value })} /></div>
+                    <div className="w-20"><Input label={i === 0 ? "Value" : undefined} type="number" value={String(s.value)} onChange={(e) => update(i, { value: parseFloat(e.target.value) || 0 })} /></div>
+                    <Action size="xs" variant="ghost" color="red" icon="x" onClick={() => remove(i)} aria-label="Remove slice" />
+                </div>
+            ))}
+            <Action size="xs" variant="ghost" icon="plus" onClick={add}>Add slice</Action>
+        </div>
+    );
+}
+
+function CartesianChartEditor({ model, onChange }: { model: ChartModel; onChange: (m: ChartModel) => void }) {
+    const { categories, series } = model;
+
+    const updateCategory = (i: number, label: string) => {
+        onChange({ ...model, categories: categories.map((c, idx) => (idx === i ? label : c)) });
+    };
+    const removeCategory = (i: number) => {
+        onChange({
+            ...model,
+            categories: categories.filter((_, idx) => idx !== i),
+            series: series.map((s) => ({ ...s, values: s.values.filter((_, idx) => idx !== i) })),
+        });
+    };
+    const addCategory = () => {
+        onChange({
+            ...model,
+            categories: [...categories, `Cat ${categories.length + 1}`],
+            series: series.map((s) => ({ ...s, values: [...s.values, 0] })),
+        });
+    };
+
+    const updateSeries = (si: number, next: Partial<{ name: string; color: string }>) => {
+        onChange({ ...model, series: series.map((s, idx) => (idx === si ? { ...s, ...next } : s)) });
+    };
+    const updateValue = (si: number, ci: number, value: number) => {
+        onChange({
+            ...model,
+            series: series.map((s, idx) =>
+                idx === si ? { ...s, values: s.values.map((v, vi) => (vi === ci ? value : v)) } : s,
+            ),
+        });
+    };
+    const removeSeries = (si: number) => onChange({ ...model, series: series.filter((_, idx) => idx !== si) });
+    const addSeries = () =>
+        onChange({
+            ...model,
+            series: [
+                ...series,
+                { name: `Series ${series.length + 1}`, color: chartColorAt(series.length), values: categories.map(() => 0) },
+            ],
+        });
+
+    return (
+        <div className="space-y-3">
+            <div className="space-y-2">
+                <Heading as="h4" size="xs" className="!uppercase !tracking-wider !text-zinc-500">Categories</Heading>
+                {categories.map((c, i) => (
+                    <div key={i} className="flex items-center gap-2">
+                        <div className="flex-1"><Input value={c} onChange={(e) => updateCategory(i, e.target.value)} /></div>
+                        <Action size="xs" variant="ghost" color="red" icon="x" onClick={() => removeCategory(i)} aria-label="Remove category" />
+                    </div>
+                ))}
+                <Action size="xs" variant="ghost" icon="plus" onClick={addCategory}>Add category</Action>
+            </div>
+
+            <Separator />
+
+            <div className="space-y-3">
+                <Heading as="h4" size="xs" className="!uppercase !tracking-wider !text-zinc-500">Series</Heading>
+                {series.map((s, si) => (
+                    <div key={si} className="space-y-2 rounded-md border border-zinc-200 p-2 dark:border-zinc-800">
+                        <div className="flex items-end gap-2">
+                            <div className="flex-1"><Input label="Name" value={s.name} onChange={(e) => updateSeries(si, { name: e.target.value })} /></div>
+                            <FieldLabel label="Color"><ColorPicker value={s.color ?? chartColorAt(si)} onChange={(c) => updateSeries(si, { color: c })} /></FieldLabel>
+                            <Action size="xs" variant="ghost" color="red" icon="x" onClick={() => removeSeries(si)} aria-label="Remove series" />
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                            {categories.map((c, ci) => (
+                                <Input
+                                    key={ci}
+                                    label={c}
+                                    type="number"
+                                    value={String(s.values[ci] ?? 0)}
+                                    onChange={(e) => updateValue(si, ci, parseFloat(e.target.value) || 0)}
+                                />
+                            ))}
+                        </div>
+                    </div>
+                ))}
+                <Action size="xs" variant="ghost" icon="plus" onClick={addSeries}>Add series</Action>
+            </div>
         </div>
     );
 }
 
 function TableStyleControls({ element, onPatch }: { element: TableElement; onPatch: (p: Partial<TableElement>) => void }) {
+    const columns = element.columns;
+    const rows = element.rows;
+
+    /** Mint a column key that's unique among existing keys (col1, col2, …). */
+    const nextColKey = (): string => {
+        const existing = new Set(columns.map((c) => c.key));
+        let n = columns.length + 1;
+        while (existing.has(`col${n}`)) n++;
+        return `col${n}`;
+    };
+
+    const setColumnLabel = (i: number, label: string) => {
+        // Only the label changes — the key stays stable.
+        onPatch({ columns: columns.map((c, idx) => (idx === i ? { ...c, label } : c)) });
+    };
+    const removeColumn = (i: number) => {
+        const key = columns[i]?.key;
+        const nextCols = columns.filter((_, idx) => idx !== i);
+        const nextRows = key
+            ? rows.map((r) => {
+                  const { [key]: _drop, ...rest } = r;
+                  return rest;
+              })
+            : rows;
+        onPatch({ columns: nextCols, rows: nextRows });
+    };
+    const addColumn = () => {
+        const key = nextColKey();
+        onPatch({
+            columns: [...columns, { key, label: `Column ${columns.length + 1}` }],
+            rows: rows.map((r) => ({ ...r, [key]: "" })),
+        });
+    };
+
+    const setCell = (rowIdx: number, key: string, value: string) => {
+        onPatch({ rows: rows.map((r, idx) => (idx === rowIdx ? { ...r, [key]: value } : r)) });
+    };
+    const removeRow = (rowIdx: number) => onPatch({ rows: rows.filter((_, idx) => idx !== rowIdx) });
+    const addRow = () => {
+        const blank: Record<string, unknown> = {};
+        for (const c of columns) blank[c.key] = "";
+        onPatch({ rows: [...rows, blank] });
+    };
+
     return (
         <div className="space-y-3">
-            <Textarea
-                label="Columns (JSON)"
-                value={JSON.stringify(element.columns, null, 2)}
-                onValueChange={(v) => {
-                    try {
-                        onPatch({ columns: JSON.parse(v) });
-                    } catch {
-                        /* ignore */
-                    }
-                }}
-                rows={5}
-            />
-            <Textarea
-                label="Rows (JSON)"
-                value={JSON.stringify(element.rows, null, 2)}
-                onValueChange={(v) => {
-                    try {
-                        onPatch({ rows: JSON.parse(v) });
-                    } catch {
-                        /* ignore */
-                    }
-                }}
-                rows={8}
-            />
+            <div className="space-y-2">
+                <Heading as="h4" size="xs" className="!uppercase !tracking-wider !text-zinc-500">Columns</Heading>
+                {columns.map((c, i) => (
+                    <div key={c.key} className="flex items-center gap-2">
+                        <div className="flex-1">
+                            <Input value={c.label} onChange={(e) => setColumnLabel(i, e.target.value)} aria-label={`Column ${i + 1} label`} />
+                        </div>
+                        <Text size="xs" className="!font-mono !text-zinc-400">{c.key}</Text>
+                        <Action size="xs" variant="ghost" color="red" icon="x" onClick={() => removeColumn(i)} aria-label="Remove column" />
+                    </div>
+                ))}
+                <Action size="xs" variant="ghost" icon="plus" onClick={addColumn}>Add column</Action>
+            </div>
+
+            <Separator />
+
+            <div className="space-y-2">
+                <Heading as="h4" size="xs" className="!uppercase !tracking-wider !text-zinc-500">Rows</Heading>
+                {columns.length === 0 ? (
+                    <Text size="xs" className="!text-zinc-500">Add a column to start adding rows.</Text>
+                ) : (
+                    <>
+                        {rows.map((r, rowIdx) => (
+                            <div key={rowIdx} className="flex items-start gap-2 border-b border-zinc-100 pb-2 dark:border-zinc-800">
+                                <div className="grid flex-1 grid-cols-1 gap-1">
+                                    {columns.map((c) => (
+                                        <Input
+                                            key={c.key}
+                                            label={c.label}
+                                            value={r[c.key] == null ? "" : String(r[c.key])}
+                                            onChange={(e) => setCell(rowIdx, c.key, e.target.value)}
+                                        />
+                                    ))}
+                                </div>
+                                <Action size="xs" variant="ghost" color="red" icon="x" onClick={() => removeRow(rowIdx)} aria-label="Remove row" />
+                            </div>
+                        ))}
+                        <Action size="xs" variant="ghost" icon="plus" onClick={addRow}>Add row</Action>
+                    </>
+                )}
+            </div>
+
+            <details className="rounded-md border border-zinc-200 dark:border-zinc-800">
+                <summary className="cursor-pointer select-none px-2 py-1.5 text-xs font-medium text-zinc-600 dark:text-zinc-400">
+                    Edit as JSON
+                </summary>
+                <div className="space-y-3 p-2 pt-0">
+                    <Textarea
+                        label="Columns (JSON)"
+                        value={JSON.stringify(columns, null, 2)}
+                        onValueChange={(v) => {
+                            try {
+                                onPatch({ columns: JSON.parse(v) });
+                            } catch {
+                                /* ignore */
+                            }
+                        }}
+                        rows={5}
+                    />
+                    <Textarea
+                        label="Rows (JSON)"
+                        value={JSON.stringify(rows, null, 2)}
+                        onValueChange={(v) => {
+                            try {
+                                onPatch({ rows: JSON.parse(v) });
+                            } catch {
+                                /* ignore */
+                            }
+                        }}
+                        rows={8}
+                    />
+                </div>
+            </details>
         </div>
     );
 }
