@@ -3,6 +3,7 @@ import type { Deck, SlideElement, SlideTransition } from "../../types";
 import { resolveTheme } from "../../theme/theme-utils";
 import { Slide } from "../Slide";
 import { useSlideKeyboard } from "../../hooks/use-slide-keyboard";
+import { totalBuildSteps } from "../../utils/builds";
 import { cn } from "../../utils/cn";
 
 export interface SlideViewerProps {
@@ -63,14 +64,49 @@ export function SlideViewer({
     // forward enters from the right, going back enters from the left.
     const prevIndexRef = useRef(index);
     const forward = index >= prevIndexRef.current;
+
+    // ─── Intra-slide build (entrance-animation) step-through ────────────────
+    // 0 = nothing built yet on the current slide. Each forward advance fires
+    // the next step until `totalBuildSteps`, after which we move to the next
+    // slide. Going backward lands on the previous slide fully built.
+    const slide = deck.slides[index];
+    const totalSteps = totalBuildSteps(slide);
+    const [buildStep, setBuildStep] = useState(0);
+
+    // Reset the build step on slide change. Only a forward advance INTO the next
+    // slide replays builds from 0; every other landing (retreat, Home/End,
+    // digit jump, external control) shows the slide fully built. `nextFreshRef`
+    // flags the one forward-advance case.
+    const nextFreshRef = useRef(false);
     useEffect(() => {
+        if (index === prevIndexRef.current) return;
         prevIndexRef.current = index;
-    }, [index]);
+        const fresh = nextFreshRef.current;
+        nextFreshRef.current = false;
+        setBuildStep(fresh ? 0 : totalBuildSteps(deck.slides[index]));
+    }, [index, deck.slides]);
+
+    const advance = useCallback(() => {
+        if (buildStep < totalSteps) {
+            setBuildStep((s) => s + 1);
+        } else if (index < deck.slides.length - 1) {
+            nextFreshRef.current = true; // next slide starts with nothing built
+            goTo(index + 1);
+        }
+    }, [buildStep, totalSteps, index, deck.slides.length, goTo]);
+
+    const retreat = useCallback(() => {
+        // v1: reversing individual builds is out of scope — step back a whole
+        // slide, showing it fully built (handled by the reset effect).
+        if (index > 0) goTo(index - 1);
+    }, [index, goTo]);
 
     useSlideKeyboard({
         total: deck.slides.length,
         index,
         goTo,
+        onAdvance: advance,
+        onRetreat: retreat,
         onExit,
         onBlank: () => setBlanked((b) => !b),
         onFullscreen: () => {
@@ -81,16 +117,19 @@ export function SlideViewer({
         },
     });
 
-    // Auto-advance loop for kiosk mode.
+    // Auto-advance loop for kiosk mode — steps through builds then slides.
     useEffect(() => {
         if (!autoAdvanceMs || deck.slides.length <= 1) return;
         const t = setTimeout(() => {
-            goTo(index + 1 < deck.slides.length ? index + 1 : 0);
+            if (buildStep < totalSteps) {
+                setBuildStep((s) => s + 1);
+            } else {
+                nextFreshRef.current = true;
+                goTo(index + 1 < deck.slides.length ? index + 1 : 0);
+            }
         }, autoAdvanceMs);
         return () => clearTimeout(t);
-    }, [autoAdvanceMs, index, deck.slides.length, goTo]);
-
-    const slide = deck.slides[index];
+    }, [autoAdvanceMs, index, deck.slides.length, goTo, buildStep, totalSteps]);
     const theme = resolveTheme(deck.theme);
     const aspectRatio = theme.aspectRatio ?? 16 / 9;
 
@@ -114,6 +153,11 @@ export function SlideViewer({
             }}
             tabIndex={0}
             data-fancy-slides-viewer={deck.id}
+            data-fancy-slides-build-step={buildStep}
+            onClick={() => {
+                if (blanked) return;
+                advance();
+            }}
         >
             {/* Keyframes for slide entrance transitions. Pure CSS — no runtime deps.
                 Gated behind prefers-reduced-motion so animations vanish entirely
@@ -134,7 +178,7 @@ export function SlideViewer({
                     {/* Keyed by index so React remounts on every slide change and the
                         enter animation replays from its first frame. */}
                     <div key={index} className="fs-slide-enter" style={enterStyle}>
-                        <Slide slide={slide} theme={theme} renderElement={renderElement} />
+                        <Slide slide={slide} theme={theme} buildStep={buildStep} renderElement={renderElement} />
                     </div>
                 </div>
             )}

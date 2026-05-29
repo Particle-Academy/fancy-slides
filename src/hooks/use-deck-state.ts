@@ -1,5 +1,5 @@
 import { useCallback, useMemo } from "react";
-import type { Deck, DeckOp, Slide, SlideElement, SlideLayout, Theme, SlideBackground, SlideTransition } from "../types";
+import type { Deck, DeckOp, ElementAnimation, Slide, SlideElement, SlideLayout, Theme, SlideBackground, SlideTransition } from "../types";
 import { elementId, slideId } from "../utils/ids";
 
 /**
@@ -37,6 +37,8 @@ export interface DeckStateApi {
     updateElement: (slideId: string, elementId: string, patch: Partial<SlideElement>) => void;
     moveElement: (slideId: string, elementId: string, x: number, y: number) => void;
     resizeElement: (slideId: string, elementId: string, w: number, h: number) => void;
+    /** Set or clear an element's entrance build animation. Pass `undefined` to clear. */
+    setAnimation: (slideId: string, elementId: string, animation?: ElementAnimation) => void;
     /** Convenience lookups. */
     getSlide: (id: string) => Slide | undefined;
     getElement: (slideId: string, elementId: string) => SlideElement | undefined;
@@ -100,6 +102,8 @@ export function useDeckState({ value, onChange, onOp }: UseDeckStateOptions): De
                 apply({ kind: "element_update", slideId: slideIdArg, elementId: elementIdArg, patch }),
             moveElement: (slideIdArg, elementIdArg, x, y) => apply({ kind: "element_move", slideId: slideIdArg, elementId: elementIdArg, x, y }),
             resizeElement: (slideIdArg, elementIdArg, w, h) => apply({ kind: "element_resize", slideId: slideIdArg, elementId: elementIdArg, w, h }),
+            setAnimation: (slideIdArg, elementIdArg, animation) =>
+                apply({ kind: "element_set_animation", slideId: slideIdArg, elementId: elementIdArg, animation }),
             getSlide: (id) => value.slides.find((s) => s.id === id),
             getElement: (slideIdArg, elementIdArg) => value.slides.find((s) => s.id === slideIdArg)?.elements.find((e) => e.id === elementIdArg),
         };
@@ -176,6 +180,26 @@ export function reduce(deck: Deck, op: DeckOp): Deck {
                 slides: deck.slides.map((s) =>
                     s.id === op.slideId
                         ? { ...s, elements: s.elements.map((e) => (e.id === op.elementId ? { ...e, w: op.w, h: op.h } : e)) }
+                        : s,
+                ),
+            };
+        case "element_set_animation":
+            return {
+                ...deck,
+                slides: deck.slides.map((s) =>
+                    s.id === op.slideId
+                        ? {
+                              ...s,
+                              elements: s.elements.map((e) => {
+                                  if (e.id !== op.elementId) return e;
+                                  if (op.animation === undefined) {
+                                      // Clear: drop the key entirely so the element leaves the build sequence.
+                                      const { animation: _drop, ...rest } = e;
+                                      return rest as SlideElement;
+                                  }
+                                  return { ...e, animation: op.animation };
+                              }),
+                          }
                         : s,
                 ),
             };

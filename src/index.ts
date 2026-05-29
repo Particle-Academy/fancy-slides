@@ -51,6 +51,8 @@ export { defineTheme, resolveTheme } from "./theme/theme-utils";
 // Utils
 export { nextId, slideId, elementId, deckId } from "./utils/ids";
 export { chartStarterOption } from "./utils/chart-presets";
+export { collectBuilds, buildSteps, totalBuildSteps, visibleElementIds, buildsForStep, stepDelays } from "./utils/builds";
+export type { Build, BuildStep } from "./utils/builds";
 
 // Types
 export type {
@@ -61,6 +63,9 @@ export type {
     SlideBackground,
     SlideTransition,
     TransitionKind,
+    AnimationEffect,
+    AnimationTrigger,
+    ElementAnimation,
     ElementBase,
     TextElement,
     TextStyle,

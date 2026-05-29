@@ -81,6 +81,32 @@ See `docs/human-plus.md` for the full contract.
 | `shape`  | SVG primitives (rect, ellipse, line, arrow) | |
 | `embed`  | iframe                                     | for video / external |
 
+## Build animations
+
+Any element can carry an `animation` to reveal it as an entrance "build step",
+the way PowerPoint/Keynote builds work:
+
+```ts
+element.animation = {
+    effect: "fly-in",      // "fade" | "fly-in" | "zoom" | "wipe"
+    trigger: "on-click",   // "on-click" (new step) | "with-prev" | "after-prev"
+    direction: "left",     // for fly-in / wipe
+    duration: 500,         // ms
+    delay: 0,              // ms
+    order: 0,              // build order, ascending; ties broken by element index
+};
+```
+
+A slide's builds group into *click steps*: the first build and every
+`on-click` build opens a new step; `with-prev` plays alongside that step's lead
+and `after-prev` follows it. In `SlideViewer` / `PresenterView`, → / Space /
+click fires the next step, then advances to the next slide once all builds have
+run; ← steps back a whole slide shown fully built. Elements with no `animation`
+are always visible; the editor canvas always shows everything. All effects are
+pure CSS and honor `prefers-reduced-motion: reduce`. Edit builds in the
+inspector's **Build** tab (per element) and the **Build order** list in slide
+settings.
+
 ## Theme
 
 ```ts

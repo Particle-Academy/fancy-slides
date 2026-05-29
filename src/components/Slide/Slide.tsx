@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
-import type { Slide as SlideData, SlideElement, Theme } from "../../types";
+import type { ElementAnimation, Slide as SlideData, SlideElement, Theme } from "../../types";
 import { resolveTheme } from "../../theme/theme-utils";
 import { cn } from "../../utils/cn";
+import { buildSteps, stepDelays } from "../../utils/builds";
 import { TextElementRenderer } from "../elements/TextElement";
 import { ImageElementRenderer } from "../elements/ImageElement";
 import { ShapeElementRenderer } from "../elements/ShapeElement";
 import { SlideContext, isDarkColor, type SlideContextValue } from "./slide-context";
+import { BUILD_KEYFRAMES, buildEnterStyle } from "./builds-style";
 
 export interface SlideProps {
     /** The slide to render. */
@@ -18,6 +20,13 @@ export interface SlideProps {
     aspectRatio?: number;
     /** Edit mode flag — passed to element renderers + enables drag/resize affordances. */
     editing?: boolean;
+    /**
+     * Current build step (0..totalSteps). `0` = nothing built (only non-animated
+     * elements visible); each step reveals more animated elements. Omit (or pass
+     * a number ≥ total) to show the fully-built slide. Ignored when `editing` —
+     * the editor always shows every element so authors can position them.
+     */
+    buildStep?: number;
     /** Called when a text element's content is edited (only in editing mode). */
     onElementContentChange?: (elementId: string, content: string) => void;
     /** Called when an element is clicked — host-driven selection. */
@@ -53,6 +62,7 @@ export function Slide({
     width,
     aspectRatio,
     editing = false,
+    buildStep,
     onElementContentChange,
     onElementSelect,
     selectedElementId,
@@ -109,6 +119,28 @@ export function Slide({
         [t, effectiveBg, slideWidthPx],
     );
 
+    // ─── Build (entrance-animation) bookkeeping ─────────────────────────────
+    // In editing mode builds never hide anything — authors must see/position
+    // every element. Otherwise we resolve each animated element's reveal step
+    // and the per-element entrance delay for the step currently firing.
+    const buildInfo = useMemo(() => {
+        if (editing) return null;
+        const steps = buildSteps(slide);
+        if (steps.length === 0) return null;
+        const revealStep = new Map<string, number>(); // element id → 1-based step
+        steps.forEach((step, i) => {
+            for (const b of step.builds) revealStep.set(b.element.id, i + 1);
+        });
+        // When `buildStep` is omitted (thumbnails, exports) the slide renders
+        // fully built with NO entrance animation. When provided, the firing
+        // step's elements animate in.
+        const driven = buildStep !== undefined;
+        const currentStep = driven ? buildStep : steps.length;
+        const firing = driven ? steps[currentStep - 1] : undefined;
+        const delays = firing ? stepDelays(firing.builds) : new Map<string, number>();
+        return { revealStep, currentStep, delays };
+    }, [editing, slide, buildStep]);
+
     return (
         <SlideContext.Provider value={slideContext}>
             <div
@@ -128,22 +160,44 @@ export function Slide({
                     if (e.target === e.currentTarget && onElementSelect) onElementSelect(null);
                 }}
             >
-                {orderedElements(slide.elements).map((element) => (
-                    <SlideElementHost
-                        key={element.id}
-                        element={element}
-                        theme={t}
-                        slideWidthPx={slideWidthPx}
-                        slideHeightPx={slideHeightPx}
-                        editing={editing}
-                        selected={selectedElementId === element.id}
-                        onContentChange={onElementContentChange}
-                        onSelect={onElementSelect}
-                        onMove={onElementMove}
-                        onResize={onElementResize}
-                        renderElement={renderElement}
-                    />
-                ))}
+                {buildInfo && <style>{BUILD_KEYFRAMES}</style>}
+                {orderedElements(slide.elements).map((element) => {
+                    // Resolve build visibility / entrance animation for this element.
+                    let buildHidden = false;
+                    let buildAnimation: ElementAnimation | undefined;
+                    let buildDelay = 0;
+                    if (buildInfo) {
+                        const step = buildInfo.revealStep.get(element.id);
+                        if (step !== undefined) {
+                            if (buildInfo.currentStep < step) {
+                                buildHidden = true; // not yet built
+                            } else if (buildInfo.currentStep === step && element.animation) {
+                                // Revealing on the step that just fired → play the effect.
+                                buildAnimation = element.animation;
+                                buildDelay = buildInfo.delays.get(element.id) ?? 0;
+                            }
+                        }
+                    }
+                    if (buildHidden) return null;
+                    return (
+                        <SlideElementHost
+                            key={element.id}
+                            element={element}
+                            theme={t}
+                            slideWidthPx={slideWidthPx}
+                            slideHeightPx={slideHeightPx}
+                            editing={editing}
+                            selected={selectedElementId === element.id}
+                            onContentChange={onElementContentChange}
+                            onSelect={onElementSelect}
+                            onMove={onElementMove}
+                            onResize={onElementResize}
+                            renderElement={renderElement}
+                            buildAnimation={buildAnimation}
+                            buildDelay={buildDelay}
+                        />
+                    );
+                })}
             </div>
         </SlideContext.Provider>
     );
@@ -161,6 +215,10 @@ interface SlideElementHostProps {
     onMove?: (elementId: string, x: number, y: number) => void;
     onResize?: (elementId: string, patch: { x: number; y: number; w: number; h: number }) => void;
     renderElement?: (element: SlideElement, slideWidthPx: number) => ReactNode | undefined;
+    /** Entrance build animation to play (only set on the step the element reveals on). */
+    buildAnimation?: ElementAnimation;
+    /** Effective entrance delay (ms) resolved for with-prev / after-prev chaining. */
+    buildDelay?: number;
 }
 
 /** Smallest allowed element size, as a fraction of the slide. */
@@ -194,6 +252,8 @@ function SlideElementHost({
     onMove,
     onResize,
     renderElement,
+    buildAnimation,
+    buildDelay = 0,
 }: SlideElementHostProps) {
     const dragRef = useRef<DragState | null>(null);
 
@@ -271,15 +331,18 @@ function SlideElementHost({
         outlineOffset: selected ? 2 : undefined,
         cursor: canMove ? "move" : interactive ? "pointer" : "default",
         touchAction: canMove ? "none" : undefined,
+        ...(buildAnimation ? buildEnterStyle(buildAnimation, buildDelay) : null),
     };
 
     const inner = renderInner({ element, theme, slideWidthPx, editing, selected, onContentChange }) ?? renderElement?.(element, slideWidthPx);
 
     return (
         <div
+            className={buildAnimation ? "fs-build-enter" : undefined}
             style={box}
             data-fancy-slides-element={element.id}
             data-fancy-slides-element-type={element.type}
+            data-fancy-slides-build={buildAnimation ? "" : undefined}
             onPointerDown={canMove ? startDrag("move") : undefined}
             onPointerMove={canMove ? onPointerMove : undefined}
             onPointerUp={canMove ? endDrag : undefined}

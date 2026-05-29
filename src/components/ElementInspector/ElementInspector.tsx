@@ -1,7 +1,8 @@
 import { useRef } from "react";
 import { Action, Card, ColorPicker, Heading, Input, Select, Separator, Slider, Tabs, Text, Textarea } from "@particle-academy/react-fancy";
-import type { Slide as SlideData, SlideBackground, SlideElement, SlideTransition, TextElement, TextStyle, ImageElement, ShapeElement, CodeElement, ChartElement, TableElement, EmbedElement } from "../../types";
+import type { ElementAnimation, Slide as SlideData, SlideBackground, SlideElement, SlideTransition, TextElement, TextStyle, ImageElement, ShapeElement, CodeElement, ChartElement, TableElement, EmbedElement } from "../../types";
 import { chartModelFromOption, chartOptionFromModel, chartColorAt, type ChartKind, type ChartModel } from "../../utils/chart-presets";
+import { collectBuilds } from "../../utils/builds";
 
 export interface ElementInspectorProps {
     /** Element being inspected. `null` falls back to slide settings (or the empty state). */
@@ -18,6 +19,10 @@ export interface ElementInspectorProps {
     onSetTransition?: (transition?: SlideTransition) => void;
     /** Set the slide's background. */
     onSetBackground?: (background?: SlideBackground) => void;
+    /** Set or clear the selected element's entrance build animation. */
+    onSetAnimation?: (animation?: ElementAnimation) => void;
+    /** Set a specific element's build animation by id — used by the slide-level build-order list. */
+    onSetElementAnimation?: (elementId: string, animation?: ElementAnimation) => void;
 }
 
 /**
@@ -26,11 +31,11 @@ export interface ElementInspectorProps {
  * react-fancy `Card`, `Tabs`, `Input`, `Select`, `Slider`, `ColorPicker`,
  * `Action`.
  */
-export function ElementInspector({ element, onPatch, onDelete, onLockToggle, slide, onSetTransition, onSetBackground }: ElementInspectorProps) {
+export function ElementInspector({ element, onPatch, onDelete, onLockToggle, slide, onSetTransition, onSetBackground, onSetAnimation, onSetElementAnimation }: ElementInspectorProps) {
     // No element selected: show slide-level settings when a slide is available.
     if (!element) {
         if (slide) {
-            return <SlideSettings slide={slide} onSetTransition={onSetTransition} onSetBackground={onSetBackground} />;
+            return <SlideSettings slide={slide} onSetTransition={onSetTransition} onSetBackground={onSetBackground} onSetElementAnimation={onSetElementAnimation} />;
         }
         return (
             <div className="fs-inspector flex h-full flex-col border-l border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-900">
@@ -68,12 +73,18 @@ export function ElementInspector({ element, onPatch, onDelete, onLockToggle, sli
                     <Tabs.List>
                         <Tabs.Tab value="style">Style</Tabs.Tab>
                         <Tabs.Tab value="layout">Layout</Tabs.Tab>
+                        <Tabs.Tab value="build">Build</Tabs.Tab>
                         <Tabs.Tab value="advanced">Advanced</Tabs.Tab>
                     </Tabs.List>
                     <Tabs.Panels>
                         <Tabs.Panel value="style">
                             <Card padding="md" className="!bg-white dark:!bg-zinc-950">
                                 <StyleSection element={element} onPatch={onPatch} />
+                            </Card>
+                        </Tabs.Panel>
+                        <Tabs.Panel value="build">
+                            <Card padding="md" className="!bg-white dark:!bg-zinc-950">
+                                <AnimateSection animation={element.animation} onSetAnimation={onSetAnimation} />
                             </Card>
                         </Tabs.Panel>
                         <Tabs.Panel value="layout">
@@ -104,10 +115,12 @@ function SlideSettings({
     slide,
     onSetTransition,
     onSetBackground,
+    onSetElementAnimation,
 }: {
     slide: SlideData;
     onSetTransition?: (transition?: SlideTransition) => void;
     onSetBackground?: (background?: SlideBackground) => void;
+    onSetElementAnimation?: (elementId: string, animation?: ElementAnimation) => void;
 }) {
     const transition = slide.transition;
     const kind = transition?.kind ?? "none";
@@ -189,9 +202,82 @@ function SlideSettings({
                         </div>
                     </Card>
                 )}
+
+                {onSetElementAnimation && (
+                    <Card padding="md" className="mt-3 !bg-white dark:!bg-zinc-950">
+                        <BuildOrderList slide={slide} onSetElementAnimation={onSetElementAnimation} />
+                    </Card>
+                )}
             </div>
         </div>
     );
+}
+
+/**
+ * Compact build-sequence manager shown in slide settings. Lists the slide's
+ * animated elements in build order with up/down buttons. Moving an item
+ * reassigns sequential `order` values (0,1,2,…) to the whole list so the
+ * sequence stays unambiguous.
+ */
+function BuildOrderList({
+    slide,
+    onSetElementAnimation,
+}: {
+    slide: SlideData;
+    onSetElementAnimation: (elementId: string, animation?: ElementAnimation) => void;
+}) {
+    const builds = collectBuilds(slide);
+
+    const move = (from: number, to: number) => {
+        if (to < 0 || to >= builds.length) return;
+        const reordered = [...builds];
+        const [item] = reordered.splice(from, 1);
+        reordered.splice(to, 0, item!);
+        // Reassign sequential orders to the whole list.
+        reordered.forEach((b, i) => {
+            if ((b.animation.order ?? 0) !== i) {
+                onSetElementAnimation(b.element.id, { ...b.animation, order: i });
+            }
+        });
+    };
+
+    return (
+        <div className="space-y-2">
+            <Heading as="h4" size="xs" className="!uppercase !tracking-wider !text-zinc-500">
+                Build order
+            </Heading>
+            {builds.length === 0 ? (
+                <Text size="xs" className="!text-zinc-500">
+                    No animated elements yet. Select an element and add a build under its Build tab.
+                </Text>
+            ) : (
+                builds.map((b, i) => (
+                    <div key={b.element.id} className="flex items-center gap-2">
+                        <Text size="xs" className="!font-mono !text-zinc-400 w-5">{i + 1}.</Text>
+                        <div className="flex-1 min-w-0">
+                            <Text size="sm" className="truncate">
+                                {buildLabel(b.element)}
+                            </Text>
+                            <Text size="xs" className="!font-mono !text-zinc-400">
+                                {b.animation.effect} · {b.animation.trigger ?? "on-click"}
+                            </Text>
+                        </div>
+                        <Action size="xs" variant="ghost" icon="chevron-up" onClick={() => move(i, i - 1)} disabled={i === 0} aria-label="Move earlier" />
+                        <Action size="xs" variant="ghost" icon="chevron-down" onClick={() => move(i, i + 1)} disabled={i === builds.length - 1} aria-label="Move later" />
+                    </div>
+                ))
+            )}
+        </div>
+    );
+}
+
+/** Short human label for a build-list row. */
+function buildLabel(element: SlideElement): string {
+    if (element.type === "text") {
+        const text = element.content.replace(/\s+/g, " ").trim();
+        return text ? (text.length > 28 ? `${text.slice(0, 28)}…` : text) : "Text";
+    }
+    return `${element.type} #${element.id.slice(-6)}`;
 }
 
 // ─── Sections ──────────────────────────────────────────────────────────────
@@ -225,6 +311,105 @@ function AdvancedSection({ element, onPatch }: { element: SlideElement; onPatch:
                     {element.hidden ? "Hidden — show" : "Hide on slide"}
                 </Action>
             </div>
+        </div>
+    );
+}
+
+// ─── Animate (build) section ─────────────────────────────────────────────────
+
+const NO_ANIMATION = "none";
+
+/**
+ * Per-element entrance build controls. Picking an effect of "none" clears the
+ * animation (drops the element from the slide's build sequence). All other
+ * fields edit a single `ElementAnimation`, funneled through `onSetAnimation`.
+ */
+function AnimateSection({
+    animation,
+    onSetAnimation,
+}: {
+    animation?: ElementAnimation;
+    onSetAnimation?: (animation?: ElementAnimation) => void;
+}) {
+    if (!onSetAnimation) {
+        return <Text size="sm" className="!text-zinc-500">Build animations aren't wired up in this editor.</Text>;
+    }
+
+    const effect = animation?.effect;
+    const set = (next: Partial<ElementAnimation>) => {
+        const base: ElementAnimation = animation ?? { effect: "fade" };
+        onSetAnimation({ ...base, ...next });
+    };
+
+    const showDirection = effect === "fly-in" || effect === "wipe";
+
+    return (
+        <div className="space-y-3">
+            <Select
+                label="Effect"
+                list={[
+                    { value: NO_ANIMATION, label: "None" },
+                    { value: "fade", label: "Fade" },
+                    { value: "fly-in", label: "Fly in" },
+                    { value: "zoom", label: "Zoom" },
+                    { value: "wipe", label: "Wipe" },
+                ]}
+                value={effect ?? NO_ANIMATION}
+                onValueChange={(v) => {
+                    if (v === NO_ANIMATION) onSetAnimation(undefined);
+                    else set({ effect: v as ElementAnimation["effect"] });
+                }}
+            />
+            {effect && (
+                <>
+                    <Select
+                        label="Trigger"
+                        list={[
+                            { value: "on-click", label: "On click" },
+                            { value: "with-prev", label: "With previous" },
+                            { value: "after-prev", label: "After previous" },
+                        ]}
+                        value={animation?.trigger ?? "on-click"}
+                        onValueChange={(v) => set({ trigger: v as ElementAnimation["trigger"] })}
+                    />
+                    {showDirection && (
+                        <Select
+                            label="Direction"
+                            list={[
+                                { value: "left", label: "From left" },
+                                { value: "right", label: "From right" },
+                                { value: "up", label: "From bottom" },
+                                { value: "down", label: "From top" },
+                            ]}
+                            value={animation?.direction ?? "left"}
+                            onValueChange={(v) => set({ direction: v as ElementAnimation["direction"] })}
+                        />
+                    )}
+                    <div className="grid grid-cols-2 gap-2">
+                        <Input
+                            label="Duration (ms)"
+                            type="number"
+                            value={String(animation?.duration ?? 500)}
+                            onChange={(e) => set({ duration: parseInt(e.target.value, 10) || 500 })}
+                        />
+                        <Input
+                            label="Delay (ms)"
+                            type="number"
+                            value={String(animation?.delay ?? 0)}
+                            onChange={(e) => set({ delay: parseInt(e.target.value, 10) || 0 })}
+                        />
+                    </div>
+                    <Input
+                        label="Order"
+                        type="number"
+                        value={String(animation?.order ?? 0)}
+                        onChange={(e) => set({ order: parseInt(e.target.value, 10) || 0 })}
+                    />
+                    <Text size="xs" className="!text-zinc-500">
+                        Builds reveal in ascending order. "On click" starts a new step; "with previous" plays alongside the step's lead; "after previous" follows it. Honors prefers-reduced-motion.
+                    </Text>
+                </>
+            )}
         </div>
     );
 }

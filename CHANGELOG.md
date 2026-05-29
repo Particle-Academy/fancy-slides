@@ -1,5 +1,46 @@
 # Changelog
 
+## 0.4.0 — 2026-05-29
+
+Per-element entrance animations (build steps) — elements can now reveal one
+click step at a time, the way PowerPoint/Keynote builds work.
+
+- **Schema**: new `ElementAnimation` (`effect`: fade / fly-in / zoom / wipe,
+  `trigger`: on-click / with-prev / after-prev, `direction`, `duration`,
+  `delay`, `order`) added as `animation?` on `ElementBase`. Shape is shared
+  byte-for-byte with the sibling `dark-slide` PHP package. New
+  `AnimationEffect` / `AnimationTrigger` types exported.
+- **Op + reducer**: new `element_set_animation` `DeckOp` and
+  `setAnimation(slideId, elementId, animation?)` on `DeckStateApi`; passing
+  `undefined` clears the animation (drops the element from the build sequence).
+- **Build model** (`src/utils/builds.ts`): a slide's builds are its animated
+  elements stable-sorted by `(order ?? 0)` then array index, grouped into click
+  steps — the first build and every `on-click` build opens a new step, while
+  `with-prev` plays alongside the step's lead and `after-prev` follows it (delay
+  = lead duration). Exports `collectBuilds`, `buildSteps`, `totalBuildSteps`,
+  `visibleElementIds`, `buildsForStep`, `stepDelays`.
+- **Slide renderer**: new optional `buildStep` prop. Not-yet-built animated
+  elements are not rendered; elements revealing on the firing step play a
+  pure-CSS entrance keyframe (fade / fly-in translate / zoom scale 0.8→1 /
+  wipe clip-path inset) honoring `duration` / `delay` and
+  `prefers-reduced-motion: reduce`. `editing` mode always shows every element.
+- **SlideViewer**: tracks `buildStep` per slide (reset to 0 on forward slide
+  change). → / Space / click advances to the next build step, then to the next
+  slide once all builds have fired. ← steps back a whole slide, shown fully
+  built (reversing individual builds is out of scope for v1). Home / End / 1-9
+  jump fully built. Kiosk auto-advance walks builds then slides.
+- **PresenterView**: mirrors the viewer's build step-through on the current
+  slide; the "Up next" preview shows the next slide fully built. Prev/Next
+  buttons drive retreat/advance.
+- **useSlideKeyboard**: new optional `onAdvance` / `onRetreat` callbacks that,
+  when provided, own forward/backward nav (so → / Space run builds-then-slide);
+  Esc / Home / End / B / F / 1-9 unchanged.
+- **Editor**: ElementInspector gains a "Build" tab (Effect / Trigger /
+  Direction / Duration / Delay / Order; Effect "none" clears the animation) via
+  a new `onSetAnimation` prop. Slide settings (no element selected) gains a
+  compact "Build order" list with up/down buttons that reassign sequential
+  orders, via `onSetElementAnimation`. Both threaded through `DeckEditor`.
+
 ## 0.3.0 — 2026-05-29
 
 Fully UI-driven element editing — no more hand-editing raw JSON for tables and

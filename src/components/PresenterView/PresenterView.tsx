@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { Deck, SlideElement } from "../../types";
 import { resolveTheme } from "../../theme/theme-utils";
 import { Slide } from "../Slide";
 import { useSlideKeyboard } from "../../hooks/use-slide-keyboard";
+import { totalBuildSteps } from "../../utils/builds";
 import { cn } from "../../utils/cn";
 
 export interface PresenterViewProps {
@@ -66,15 +67,43 @@ export function PresenterView({
         [deck.slides.length, isControlled, onIndexChange],
     );
 
+    // Mirror SlideViewer's build step-through so the speaker drives builds too.
+    const slide = deck.slides[index];
+    const totalSteps = totalBuildSteps(slide);
+    const [buildStep, setBuildStep] = useState(0);
+    const prevIndexRef = useRef(index);
+    const nextFreshRef = useRef(false);
+    useEffect(() => {
+        if (index === prevIndexRef.current) return;
+        prevIndexRef.current = index;
+        const fresh = nextFreshRef.current;
+        nextFreshRef.current = false;
+        setBuildStep(fresh ? 0 : totalBuildSteps(deck.slides[index]));
+    }, [index, deck.slides]);
+
+    const advance = useCallback(() => {
+        if (buildStep < totalSteps) {
+            setBuildStep((s) => s + 1);
+        } else if (index < deck.slides.length - 1) {
+            nextFreshRef.current = true;
+            goTo(index + 1);
+        }
+    }, [buildStep, totalSteps, index, deck.slides.length, goTo]);
+
+    const retreat = useCallback(() => {
+        if (index > 0) goTo(index - 1);
+    }, [index, goTo]);
+
     useSlideKeyboard({
         total: deck.slides.length,
         index,
         goTo,
+        onAdvance: advance,
+        onRetreat: retreat,
         onExit,
     });
 
     const theme = resolveTheme(deck.theme);
-    const slide = deck.slides[index];
     const nextSlide = deck.slides[index + 1];
 
     // Tick once a second for the clock + elapsed timer.
@@ -123,7 +152,7 @@ export function PresenterView({
                         overflow: "hidden",
                     }}
                 >
-                    {slide ? <Slide slide={slide} theme={theme} renderElement={renderElement} /> : null}
+                    {slide ? <Slide slide={slide} theme={theme} buildStep={buildStep} renderElement={renderElement} /> : null}
                 </div>
             </div>
 
@@ -223,10 +252,10 @@ export function PresenterView({
                 <StatusChip label="Elapsed">{formatElapsed(now - startedAtRef)}</StatusChip>
                 <StatusChip label="Clock">{formatClock(now)}</StatusChip>
                 <div style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
-                    <NavButton onClick={() => goTo(index - 1)} disabled={index === 0}>
+                    <NavButton onClick={retreat} disabled={index === 0}>
                         ← Prev
                     </NavButton>
-                    <NavButton onClick={() => goTo(index + 1)} disabled={index >= deck.slides.length - 1}>
+                    <NavButton onClick={advance} disabled={index >= deck.slides.length - 1 && buildStep >= totalSteps}>
                         Next →
                     </NavButton>
                 </div>

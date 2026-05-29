@@ -5,8 +5,19 @@ export interface SlideKeyboardOptions {
     total: number;
     /** Current slide index. */
     index: number;
-    /** Move to a specific slide. */
+    /** Move to a specific slide. Used by Home/End/1-9 (and by arrows when no `onAdvance`/`onRetreat`). */
     goTo: (index: number) => void;
+    /**
+     * Forward step (→ / Space / PageDown). When provided it OWNS forward nav —
+     * e.g. step through builds, then advance the slide. Falls back to
+     * `goTo(index + 1)` when omitted.
+     */
+    onAdvance?: () => void;
+    /**
+     * Backward step (← / PageUp). When provided it OWNS backward nav. Falls back
+     * to `goTo(index - 1)` when omitted.
+     */
+    onRetreat?: () => void;
     /** Called on Esc — typically exits fullscreen. */
     onExit?: () => void;
     /** Called on `B` — typically blacks/whites out the screen. */
@@ -20,8 +31,8 @@ export interface SlideKeyboardOptions {
 /**
  * Standard slideshow keyboard plumbing:
  *
- *   ←   / PageUp     — previous slide
- *   →   / PageDown / Space — next slide
+ *   ←   / PageUp     — retreat (onRetreat, else previous slide)
+ *   →   / PageDown / Space — advance (onAdvance, else next slide)
  *   Home              — first slide
  *   End               — last slide
  *   Esc               — onExit
@@ -33,6 +44,8 @@ export function useSlideKeyboard({
     total,
     index,
     goTo,
+    onAdvance,
+    onRetreat,
     onExit,
     onBlank,
     onFullscreen,
@@ -52,13 +65,15 @@ export function useSlideKeyboard({
                 case "ArrowLeft":
                 case "PageUp":
                     e.preventDefault();
-                    if (index > 0) goTo(index - 1);
+                    if (onRetreat) onRetreat();
+                    else if (index > 0) goTo(index - 1);
                     return;
                 case "ArrowRight":
                 case "PageDown":
                 case " ":
                     e.preventDefault();
-                    if (index < total - 1) goTo(index + 1);
+                    if (onAdvance) onAdvance();
+                    else if (index < total - 1) goTo(index + 1);
                     return;
                 case "Home":
                     e.preventDefault();
@@ -101,5 +116,5 @@ export function useSlideKeyboard({
 
         window.addEventListener("keydown", handler);
         return () => window.removeEventListener("keydown", handler);
-    }, [enabled, index, total, goTo, onExit, onBlank, onFullscreen]);
+    }, [enabled, index, total, goTo, onAdvance, onRetreat, onExit, onBlank, onFullscreen]);
 }

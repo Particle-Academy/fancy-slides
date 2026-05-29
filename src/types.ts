@@ -86,6 +86,37 @@ export interface ElementBase {
     locked?: boolean;
     /** Hide on this slide (still in the data — for animated reveals). */
     hidden?: boolean;
+    /** Entrance build animation — when present the element participates in the slide's build sequence. */
+    animation?: ElementAnimation;
+}
+
+// ─── Element entrance animations (builds) ────────────────────────────────────
+
+/** Visual entrance effect played when an element builds onto the slide. */
+export type AnimationEffect = "fade" | "fly-in" | "zoom" | "wipe";
+
+/** When an element's build fires relative to the surrounding builds. */
+export type AnimationTrigger = "on-click" | "with-prev" | "after-prev";
+
+/**
+ * Per-element entrance animation ("build step"). Elements with an `animation`
+ * start hidden and reveal as the presenter advances through the slide's build
+ * sequence. The shape is shared with the sibling `dark-slide` PHP package, so
+ * keep it byte-for-byte aligned.
+ */
+export interface ElementAnimation {
+    /** Visual effect. */
+    effect: AnimationEffect;
+    /** When the build fires relative to its neighbours. Default `"on-click"`. */
+    trigger?: AnimationTrigger;
+    /** Direction for `fly-in` / `wipe`. Default `"left"`. */
+    direction?: "left" | "right" | "up" | "down";
+    /** Effect duration in ms. Default `500`. */
+    duration?: number;
+    /** Delay before the effect starts, in ms. Default `0`. */
+    delay?: number;
+    /** Build order within the slide, ascending; ties broken by element array index. */
+    order?: number;
 }
 
 export interface TextElement extends ElementBase {
@@ -279,4 +310,5 @@ export type DeckOp =
     | { kind: "element_remove"; slideId: string; elementId: string }
     | { kind: "element_update"; slideId: string; elementId: string; patch: Partial<SlideElement> }
     | { kind: "element_move"; slideId: string; elementId: string; x: number; y: number }
-    | { kind: "element_resize"; slideId: string; elementId: string; w: number; h: number };
+    | { kind: "element_resize"; slideId: string; elementId: string; w: number; h: number }
+    | { kind: "element_set_animation"; slideId: string; elementId: string; animation?: ElementAnimation };
