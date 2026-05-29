@@ -5,6 +5,7 @@ import { Slide } from "../Slide";
 import { useSlideKeyboard } from "../../hooks/use-slide-keyboard";
 import { totalBuildSteps } from "../../utils/builds";
 import { cn } from "../../utils/cn";
+import { defaultElementRegistry } from "../../registry";
 
 export interface SlideViewerProps {
     /** Deck to play. */
@@ -21,7 +22,12 @@ export interface SlideViewerProps {
     autoAdvanceMs?: number;
     /** Hide the bottom progress bar + slide counter. */
     hideChrome?: boolean;
-    /** Optional custom renderer for element types Slide doesn't render natively (chart/code/table/embed). */
+    /**
+     * Custom renderer for element types Slide doesn't render natively
+     * (chart/code/table/embed). Defaults to the built-in
+     * `defaultElementRegistry` so decks play fully out of the box; pass your
+     * own to override.
+     */
     renderElement?: (element: SlideElement, slideWidthPx: number) => ReactNode | undefined;
     /** Extra classes on the viewer wrapper. */
     className?: string;
@@ -41,7 +47,7 @@ export function SlideViewer({
     onExit,
     autoAdvanceMs,
     hideChrome = false,
-    renderElement,
+    renderElement = defaultElementRegistry,
     className,
 }: SlideViewerProps) {
     const isControlled = controlledIndex !== undefined;

@@ -21,6 +21,7 @@ import { SlideRail } from "../SlideRail";
 import { EditorToolbar } from "../EditorToolbar";
 import { ElementInspector } from "../ElementInspector";
 import { SpeakerNotes } from "../SpeakerNotes";
+import { defaultElementRegistry } from "../../registry";
 
 export interface DeckEditorProps {
     /** Controlled deck — pair with `onChange`. */
@@ -33,7 +34,14 @@ export interface DeckEditorProps {
     /** Controlled selected slide id. Uncontrolled by default. */
     selectedSlideId?: string | null;
     onSelectedSlideChange?: (id: string | null) => void;
-    /** Optional renderer for chart / code / table / embed elements (the elements this package doesn't render natively). */
+    /**
+     * Renderer for chart / code / table / embed elements (the elements this
+     * package doesn't render natively). Defaults to the built-in
+     * `defaultElementRegistry` so the editor is full out of the box; pass your
+     * own to override (it wins entirely). The optional-peer hosts (chart/code)
+     * load fancy-echarts/fancy-code via guarded dynamic imports, so the base
+     * bundle never statically requires them.
+     */
     renderElement?: (element: SlideElement, slideWidthPx: number) => ReactNode | undefined;
     /** Hide the slide rail (e.g. for embedded use). */
     hideRail?: boolean;
@@ -63,7 +71,7 @@ export function DeckEditor({
     onPresent,
     selectedSlideId: controlledSlideId,
     onSelectedSlideChange,
-    renderElement,
+    renderElement = defaultElementRegistry,
     hideRail = false,
     hideNotes = false,
     hideToolbar = false,

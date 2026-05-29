@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.6.0 — 2026-05-29
+
+### Changed
+- **Full editor out of the box.** `DeckEditor` and `SlideViewer` now render all
+  element types (chart / code / table / embed) by default via a built-in default
+  registry — `renderElement` defaults to `defaultElementRegistry`, so consumers
+  no longer have to wire it manually. A consumer-passed `renderElement` still
+  wins entirely, keeping full customizability.
+- **Optional-peer hosts use guarded dynamic imports.** The chart and code hosts
+  no longer statically import `@particle-academy/fancy-echarts` /
+  `@particle-academy/fancy-code`. They load the peer via a dynamic
+  `import()` and read its members off the resolved module at runtime, guarding
+  the missing-peer case. A consumer that hasn't installed fancy-echarts/fancy-code
+  still builds — the element shows a small dashed placeholder (with the
+  `npm i …` hint) instead of breaking the build with a Rollup MISSING_EXPORT.
+  The base bundle never statically requires the optional peers; they stay in
+  dynamically-loaded chunks.
+
 ## 0.5.1 — 2026-05-29
 
 ### Fixed
