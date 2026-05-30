@@ -10,9 +10,12 @@
   a consumer still missing a peer degrades to a small placeholder instead of a
   build break — but they're no longer advertised as optional.
 
-> Toolbar/inspector dropdowns that appeared "stuck" in some consumer builds were
-> a `react-fancy` popover-positioning race, fixed in `@particle-academy/react-fancy@3.4.2`.
-> Update react-fancy to 3.4.2+ alongside this release.
+> Toolbar/inspector dropdowns that appeared "stuck" (menu mounted but parked
+> off-screen) were a `react-fancy` popover-positioning race — the measurement
+> ran on `requestAnimationFrame`, which fires after the menu's late mount (or
+> never, in a backgrounded tab). Fixed in `@particle-academy/react-fancy@3.4.3`
+> by measuring on a passive effect instead. **Update react-fancy to 3.4.3+
+> alongside this release** (3.4.2 has a regression — skip it).
 
 ## 0.10.0 — 2026-05-29
 
