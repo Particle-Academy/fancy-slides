@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.11.0 — 2026-05-30
+
+### Changed
+- **`@particle-academy/fancy-code` and `@particle-academy/fancy-echarts` are now
+  required peer dependencies** (previously optional). The code and chart
+  elements need them to render, so consumers should install them alongside
+  fancy-slides. The registry's guarded dynamic imports remain as a safety net —
+  a consumer still missing a peer degrades to a small placeholder instead of a
+  build break — but they're no longer advertised as optional.
+
+> Toolbar/inspector dropdowns that appeared "stuck" in some consumer builds were
+> a `react-fancy` popover-positioning race, fixed in `@particle-academy/react-fancy@3.4.2`.
+> Update react-fancy to 3.4.2+ alongside this release.
+
 ## 0.10.0 — 2026-05-29
 
 ### Added — stream a full presentation in / out

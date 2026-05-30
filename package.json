@@ -1,6 +1,6 @@
 {
   "name": "@particle-academy/fancy-slides",
-  "version": "0.10.0",
+  "version": "0.11.0",
   "description": "Presentation editor + web viewer for the fancy UI set — Google-Slides-style deck authoring with a JSON-friendly schema, full keyboard-driven viewer, and an agent bridge so LLMs can compose decks directly.",
   "repository": {
     "type": "git",
@@ -50,14 +50,6 @@
     "@particle-academy/react-fancy": "^3.0.0",
     "@particle-academy/fancy-echarts": "^3.0.0 || ^4.0.0",
     "@particle-academy/fancy-code": "^0.4.0"
-  },
-  "peerDependenciesMeta": {
-    "@particle-academy/fancy-echarts": {
-      "optional": true
-    },
-    "@particle-academy/fancy-code": {
-      "optional": true
-    }
   },
   "devDependencies": {
     "@particle-academy/fancy-code": "^0.4.0",
