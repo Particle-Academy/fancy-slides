@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { Action, Badge, Dropdown, Separator, Tooltip } from "@particle-academy/react-fancy";
 import type { ShapeKind, Theme } from "../../types";
 import { builtinThemes } from "../../theme/default-theme";
@@ -37,6 +38,8 @@ export interface EditorToolbarProps {
     onPresent?: () => void;
     /** When true, disables every Insert button (e.g. when no slide is selected). */
     disabled?: boolean;
+    /** Host-injected content rendered on the toolbar's trailing edge, left of Present. */
+    toolbarExtra?: ReactNode;
 }
 
 /**
@@ -57,6 +60,7 @@ export function EditorToolbar({
     onInsertTable,
     onPresent,
     disabled = false,
+    toolbarExtra,
 }: EditorToolbarProps) {
     return (
         <div className="fs-toolbar flex items-center gap-2 border-b border-zinc-200 bg-white px-4 py-2 dark:border-zinc-800 dark:bg-zinc-950">
@@ -134,6 +138,7 @@ export function EditorToolbar({
             </Dropdown>
 
             <div className="ml-auto flex items-center gap-2">
+                {toolbarExtra}
                 <Tooltip content="Present (F)">
                     <Action color="violet" size="sm" icon="play" onClick={onPresent}>
                         Present

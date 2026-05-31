@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.12.0 — 2026-05-31
+
+### Changed
+- **`DeckEditor`'s `toolbarExtra` now renders in the toolbar** (trailing edge,
+  left of Present) instead of below the editor — matching its documentation.
+  Lets a host inject custom toolbar actions (e.g. an export-engine picker)
+  without forking the component. Threaded through to `EditorToolbar` via a new
+  `toolbarExtra` prop.
+
+### Added
+- **Inspector code element edits in a live code editor.** The Code field now
+  embeds the fancy-code `CodeEditor` (lazy-loaded like the slide renderer, with
+  a textarea fallback when fancy-code isn't installed) instead of a plain
+  textarea, and the Language field is a `Select` of common languages.
+
 ## 0.11.0 — 2026-05-30
 
 ### Changed

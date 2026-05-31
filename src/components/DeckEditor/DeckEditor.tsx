@@ -237,6 +237,7 @@ export function DeckEditor({
                     onInsertTable={insertTable}
                     onPresent={onPresent}
                     disabled={!slide}
+                    toolbarExtra={toolbarExtra}
                 />
             )}
 
@@ -324,8 +325,6 @@ export function DeckEditor({
                     </div>
                 )}
             </div>
-
-            {toolbarExtra}
         </div>
     );
 }

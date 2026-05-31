@@ -3,6 +3,7 @@ import { Action, Card, ColorPicker, Heading, Input, Select, Separator, Slider, S
 import type { ElementAnimation, Slide as SlideData, SlideBackground, SlideElement, SlideLayout, SlideTransition, TextElement, TextStyle, ImageElement, ShapeElement, CodeElement, ChartElement, TableElement, EmbedElement } from "../../types";
 import { chartModelFromOption, chartOptionFromModel, chartColorAt, type ChartKind, type ChartModel } from "../../utils/chart-presets";
 import { collectBuilds } from "../../utils/builds";
+import { CodeInput } from "./CodeInput";
 
 export interface ElementInspectorProps {
     /** Element being inspected. `null` falls back to slide settings (or the empty state). */
@@ -706,11 +707,37 @@ function ShapeStyleControls({ element, onPatch }: { element: ShapeElement; onPat
     );
 }
 
+const CODE_LANGUAGES = [
+    { value: "javascript", label: "JavaScript" },
+    { value: "typescript", label: "TypeScript" },
+    { value: "jsx", label: "JSX" },
+    { value: "tsx", label: "TSX" },
+    { value: "html", label: "HTML" },
+    { value: "css", label: "CSS" },
+    { value: "json", label: "JSON" },
+    { value: "python", label: "Python" },
+    { value: "php", label: "PHP" },
+    { value: "bash", label: "Bash" },
+    { value: "go", label: "Go" },
+    { value: "sql", label: "SQL" },
+    { value: "markdown", label: "Markdown" },
+];
+
 function CodeStyleControls({ element, onPatch }: { element: CodeElement; onPatch: (p: Partial<CodeElement>) => void }) {
     return (
         <div className="space-y-3">
-            <Textarea label="Code" value={element.code} onValueChange={(v) => onPatch({ code: v })} rows={6} autoResize />
-            <Input label="Language" value={element.language ?? "javascript"} onChange={(e) => onPatch({ language: e.target.value })} />
+            <CodeInput
+                value={element.code}
+                language={element.language ?? "javascript"}
+                theme={element.codeTheme ?? "dark"}
+                onChange={(v) => onPatch({ code: v })}
+            />
+            <Select
+                label="Language"
+                list={CODE_LANGUAGES}
+                value={element.language ?? "javascript"}
+                onValueChange={(v) => onPatch({ language: v })}
+            />
             <Select
                 label="Theme"
                 list={[
