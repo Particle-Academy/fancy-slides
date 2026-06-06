@@ -1,5 +1,7 @@
 # @particle-academy/fancy-slides
 
+[![Fancified](art/fancified.svg)](https://particle.academy)
+
 Presentation editor + web viewer for the Fancy UI set. Google-Slides-style deck
 authoring with a JSON-friendly schema, full keyboard-driven viewer, and an agent
 bridge so LLMs can compose decks directly.
