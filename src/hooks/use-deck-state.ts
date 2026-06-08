@@ -9,11 +9,28 @@ import { elementId, slideId } from "../utils/ids";
  * — the helpers exist so the editor / agent bridge / undo system all funnel
  * through the same shape.
  */
+/**
+ * Who mints new slide/element ids.
+ *
+ * - `"client"` (default) — ids are final, minted locally. Instant; right for
+ *   solo editors.
+ * - `"optimistic"` — ids are minted as provisional `tmp_…` ids and surfaced in
+ *   the emitted op, so a collaborative/agent-driven host can reconcile them to
+ *   the server-assigned id when the op echoes back (see `useDeckSync`).
+ * - `"server"` — same provisional `tmp_…` minting; the `tmp_` prefix is the
+ *   signal that the authoritative id comes from the server. (The element still
+ *   renders immediately under its tmp id; gate on confirmation host-side if you
+ *   need strict server-only ids.)
+ */
+export type IdStrategy = "client" | "optimistic" | "server";
+
 export interface UseDeckStateOptions {
     value: Deck;
     onChange: (next: Deck) => void;
     /** Called after every mutation with the op that produced it — wire up an AgentPanel / audit log. */
     onOp?: (op: DeckOp) => void;
+    /** Who mints new ids. Defaults to `"client"`. See {@link IdStrategy}. */
+    idStrategy?: IdStrategy;
 }
 
 export interface DeckStateApi {
@@ -46,7 +63,7 @@ export interface DeckStateApi {
     getElement: (slideId: string, elementId: string) => SlideElement | undefined;
 }
 
-export function useDeckState({ value, onChange, onOp }: UseDeckStateOptions): DeckStateApi {
+export function useDeckState({ value, onChange, onOp, idStrategy = "client" }: UseDeckStateOptions): DeckStateApi {
     const apply = useCallback(
         (op: DeckOp) => {
             const next = reduce(value, op);
@@ -56,14 +73,21 @@ export function useDeckState({ value, onChange, onOp }: UseDeckStateOptions): De
         [value, onChange, onOp],
     );
 
+    // Provisional ids are tagged `tmp_` so a collaborative host can reconcile
+    // them to a server-assigned id once the op echoes back.
+    const mkId = useCallback(
+        (gen: () => string): string => (idStrategy === "client" ? gen() : `tmp_${gen()}`),
+        [idStrategy],
+    );
+
     return useMemo<DeckStateApi>(() => {
         return {
             apply,
-            setTitle: (title) => apply({ kind: "deck_set_title", title }),
-            applyTheme: (theme) => apply({ kind: "deck_apply_theme", theme }),
-            setDeck: (deck) => apply({ kind: "deck_set", deck }),
+            setTitle: (title) => apply({ op: "deck.setTitle", title }),
+            applyTheme: (theme) => apply({ op: "deck.setTheme", theme }),
+            setDeck: (deck) => apply({ op: "deck.replace", deck }),
             addSlide: (index, partial) => {
-                const id = partial?.id ?? slideId();
+                const id = partial?.id ?? mkId(slideId);
                 const slide: Slide = {
                     id,
                     layout: partial?.layout ?? "blank",
@@ -73,44 +97,44 @@ export function useDeckState({ value, onChange, onOp }: UseDeckStateOptions): De
                     notes: partial?.notes,
                     metadata: partial?.metadata,
                 };
-                apply({ kind: "slide_add", index: index ?? value.slides.length, slide });
+                apply({ op: "slide.add", index: index ?? value.slides.length, slide });
                 return id;
             },
             duplicateSlide: (id) => {
                 const src = value.slides.find((s) => s.id === id);
                 if (!src) return id;
-                const newId = slideId();
+                const newId = mkId(slideId);
                 const clone: Slide = {
                     ...src,
                     id: newId,
-                    elements: src.elements.map((e) => ({ ...e, id: elementId() })),
+                    elements: src.elements.map((e) => ({ ...e, id: mkId(elementId) })),
                 };
                 const idx = value.slides.findIndex((s) => s.id === id);
-                apply({ kind: "slide_add", index: idx + 1, slide: clone });
+                apply({ op: "slide.add", index: idx + 1, slide: clone });
                 return newId;
             },
-            removeSlide: (id) => apply({ kind: "slide_remove", id }),
-            reorderSlide: (id, toIndex) => apply({ kind: "slide_reorder", id, toIndex }),
-            setLayout: (id, layout) => apply({ kind: "slide_set_layout", id, layout }),
-            setNotes: (id, notes) => apply({ kind: "slide_set_notes", id, notes }),
-            setBackground: (id, background) => apply({ kind: "slide_set_background", id, background }),
-            setTransition: (id, transition) => apply({ kind: "slide_set_transition", id, transition }),
-            addElement: (slideId, element) => {
-                const id = element.id ?? elementId();
-                apply({ kind: "element_add", slideId, element: { ...element, id } as SlideElement });
+            removeSlide: (id) => apply({ op: "slide.remove", slideId: id }),
+            reorderSlide: (id, toIndex) => apply({ op: "slide.reorder", slideId: id, toIndex }),
+            setLayout: (id, layout) => apply({ op: "slide.setLayout", slideId: id, layout }),
+            setNotes: (id, notes) => apply({ op: "slide.setNotes", slideId: id, notes }),
+            setBackground: (id, background) => apply({ op: "slide.setBackground", slideId: id, background }),
+            setTransition: (id, transition) => apply({ op: "slide.setTransition", slideId: id, transition }),
+            addElement: (slideIdArg, element) => {
+                const id = element.id ?? mkId(elementId);
+                apply({ op: "element.add", slideId: slideIdArg, element: { ...element, id } as SlideElement });
                 return id;
             },
-            removeElement: (slideIdArg, elementIdArg) => apply({ kind: "element_remove", slideId: slideIdArg, elementId: elementIdArg }),
+            removeElement: (slideIdArg, elementIdArg) => apply({ op: "element.remove", slideId: slideIdArg, elementId: elementIdArg }),
             updateElement: (slideIdArg, elementIdArg, patch) =>
-                apply({ kind: "element_update", slideId: slideIdArg, elementId: elementIdArg, patch }),
-            moveElement: (slideIdArg, elementIdArg, x, y) => apply({ kind: "element_move", slideId: slideIdArg, elementId: elementIdArg, x, y }),
-            resizeElement: (slideIdArg, elementIdArg, w, h) => apply({ kind: "element_resize", slideId: slideIdArg, elementId: elementIdArg, w, h }),
+                apply({ op: "element.update", slideId: slideIdArg, elementId: elementIdArg, patch }),
+            moveElement: (slideIdArg, elementIdArg, x, y) => apply({ op: "element.move", slideId: slideIdArg, elementId: elementIdArg, x, y }),
+            resizeElement: (slideIdArg, elementIdArg, w, h) => apply({ op: "element.resize", slideId: slideIdArg, elementId: elementIdArg, w, h }),
             setAnimation: (slideIdArg, elementIdArg, animation) =>
-                apply({ kind: "element_set_animation", slideId: slideIdArg, elementId: elementIdArg, animation }),
+                apply({ op: "element.setAnimation", slideId: slideIdArg, elementId: elementIdArg, animation }),
             getSlide: (id) => value.slides.find((s) => s.id === id),
             getElement: (slideIdArg, elementIdArg) => value.slides.find((s) => s.id === slideIdArg)?.elements.find((e) => e.id === elementIdArg),
         };
-    }, [apply, value.slides]);
+    }, [apply, value.slides, mkId]);
 }
 
 /**
@@ -119,51 +143,51 @@ export function useDeckState({ value, onChange, onOp }: UseDeckStateOptions): De
  * this. Never mutates the input.
  */
 export function reduce(deck: Deck, op: DeckOp): Deck {
-    switch (op.kind) {
-        case "deck_set_title":
+    switch (op.op) {
+        case "deck.setTitle":
             return { ...deck, title: op.title };
-        case "deck_apply_theme":
+        case "deck.setTheme":
             return { ...deck, theme: op.theme };
-        case "deck_set":
+        case "deck.replace":
             // Replace the whole deck — streaming a full presentation in. The
             // previous deck is what an undo entry would snapshot.
             return op.deck;
-        case "slide_add": {
+        case "slide.add": {
             const slides = [...deck.slides];
             slides.splice(Math.max(0, Math.min(slides.length, op.index)), 0, op.slide);
             return { ...deck, slides };
         }
-        case "slide_remove":
-            return { ...deck, slides: deck.slides.filter((s) => s.id !== op.id) };
-        case "slide_reorder": {
-            const idx = deck.slides.findIndex((s) => s.id === op.id);
+        case "slide.remove":
+            return { ...deck, slides: deck.slides.filter((s) => s.id !== op.slideId) };
+        case "slide.reorder": {
+            const idx = deck.slides.findIndex((s) => s.id === op.slideId);
             if (idx < 0) return deck;
             const slides = [...deck.slides];
             const [moved] = slides.splice(idx, 1);
             slides.splice(Math.max(0, Math.min(slides.length, op.toIndex)), 0, moved);
             return { ...deck, slides };
         }
-        case "slide_set_layout":
-            return { ...deck, slides: deck.slides.map((s) => (s.id === op.id ? { ...s, layout: op.layout } : s)) };
-        case "slide_set_notes":
-            return { ...deck, slides: deck.slides.map((s) => (s.id === op.id ? { ...s, notes: op.notes } : s)) };
-        case "slide_set_background":
-            return { ...deck, slides: deck.slides.map((s) => (s.id === op.id ? { ...s, background: op.background } : s)) };
-        case "slide_set_transition":
-            return { ...deck, slides: deck.slides.map((s) => (s.id === op.id ? { ...s, transition: op.transition } : s)) };
-        case "element_add":
+        case "slide.setLayout":
+            return { ...deck, slides: deck.slides.map((s) => (s.id === op.slideId ? { ...s, layout: op.layout } : s)) };
+        case "slide.setNotes":
+            return { ...deck, slides: deck.slides.map((s) => (s.id === op.slideId ? { ...s, notes: op.notes } : s)) };
+        case "slide.setBackground":
+            return { ...deck, slides: deck.slides.map((s) => (s.id === op.slideId ? { ...s, background: op.background } : s)) };
+        case "slide.setTransition":
+            return { ...deck, slides: deck.slides.map((s) => (s.id === op.slideId ? { ...s, transition: op.transition } : s)) };
+        case "element.add":
             return {
                 ...deck,
                 slides: deck.slides.map((s) => (s.id === op.slideId ? { ...s, elements: [...s.elements, op.element] } : s)),
             };
-        case "element_remove":
+        case "element.remove":
             return {
                 ...deck,
                 slides: deck.slides.map((s) =>
                     s.id === op.slideId ? { ...s, elements: s.elements.filter((e) => e.id !== op.elementId) } : s,
                 ),
             };
-        case "element_update":
+        case "element.update":
             return {
                 ...deck,
                 slides: deck.slides.map((s) =>
@@ -172,7 +196,7 @@ export function reduce(deck: Deck, op: DeckOp): Deck {
                         : s,
                 ),
             };
-        case "element_move":
+        case "element.move":
             return {
                 ...deck,
                 slides: deck.slides.map((s) =>
@@ -181,7 +205,7 @@ export function reduce(deck: Deck, op: DeckOp): Deck {
                         : s,
                 ),
             };
-        case "element_resize":
+        case "element.resize":
             return {
                 ...deck,
                 slides: deck.slides.map((s) =>
@@ -190,7 +214,7 @@ export function reduce(deck: Deck, op: DeckOp): Deck {
                         : s,
                 ),
             };
-        case "element_set_animation":
+        case "element.setAnimation":
             return {
                 ...deck,
                 slides: deck.slides.map((s) =>

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import type {
     ChartElement,
     CodeElement,
@@ -11,14 +11,17 @@ import type {
     SlideElement,
     TableElement,
     TextElement,
+    Theme,
 } from "../../types";
 import { resolveTheme } from "../../theme/theme-utils";
+import { builtinThemes } from "../../theme/default-theme";
 import { elementId } from "../../utils/ids";
-import { useDeckState } from "../../hooks/use-deck-state";
+import { useDeckState, type IdStrategy } from "../../hooks/use-deck-state";
+import { migrateDeck } from "../../utils/serialize";
 import { chartStarterOption, type ChartKind } from "../../utils/chart-presets";
 import { Slide } from "../Slide";
 import { SlideRail } from "../SlideRail";
-import { EditorToolbar } from "../EditorToolbar";
+import { EditorToolbar, type ToolbarApi } from "../EditorToolbar";
 import { ElementInspector } from "../ElementInspector";
 import { SpeakerNotes } from "../SpeakerNotes";
 import { defaultElementRegistry } from "../../registry";
@@ -53,6 +56,20 @@ export interface DeckEditorProps {
     hideInspector?: boolean;
     /** Optional extra content on the toolbar's trailing edge. */
     toolbarExtra?: ReactNode;
+    /**
+     * Theme list the toolbar's picker offers. Defaults to the built-in themes;
+     * pass user-authored themes (`[...builtinThemes, myTheme]`) to extend it.
+     */
+    themes?: Theme[];
+    /** Who mints new slide/element ids. Defaults to `"client"`. See {@link IdStrategy}. */
+    idStrategy?: IdStrategy;
+    /**
+     * Compose the toolbar yourself. Receives the toolbar action surface and
+     * returns the toolbar node — typically built from `EditorToolbar` + its slot
+     * components (`.Title` / `.Insert` / `.Themes` / `.Trailing`). When omitted,
+     * the default toolbar is rendered.
+     */
+    renderToolbar?: (api: ToolbarApi) => ReactNode;
     className?: string;
 }
 
@@ -77,10 +94,23 @@ export function DeckEditor({
     hideToolbar = false,
     hideInspector = false,
     toolbarExtra,
+    themes,
+    idStrategy = "client",
+    renderToolbar,
     className,
 }: DeckEditorProps) {
     const deck = value;
-    const ops = useDeckState({ value: deck, onChange, onOp });
+    const ops = useDeckState({ value: deck, onChange, onOp, idStrategy });
+
+    // Migrate an older-schema deck forward on load and emit one normalized
+    // onChange so the consumer can persist the upgraded shape. migrateDeck is
+    // idempotent (returns the same ref once current), so this won't loop. Keyed
+    // on deck id: a freshly-loaded deck re-runs the migration.
+    useEffect(() => {
+        const migrated = migrateDeck(value);
+        if (migrated !== value) onChange(migrated);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [value.id]);
 
     // Slide selection — controlled or internal.
     const [internalSlideId, setInternalSlideId] = useState<string | null>(deck.slides[0]?.id ?? null);
@@ -217,29 +247,46 @@ export function DeckEditor({
         [insert],
     );
 
+    // The toolbar action surface — handed to a custom `renderToolbar`, and the
+    // source for the default toolbar too.
+    const toolbarApi: ToolbarApi = useMemo(
+        () => ({
+            title: { value: deck.title, onChange: (t) => ops.setTitle(t) },
+            theme: { name: deck.theme.name, themes: themes ?? Object.values(builtinThemes), onApply: (t) => ops.applyTheme(t) },
+            insert: { text: insertText, image: insertImage, shape: insertShape, chart: insertChart, code: insertCode, table: insertTable },
+            present: onPresent,
+            disabled: !slide,
+        }),
+        [deck.title, deck.theme.name, themes, ops, insertText, insertImage, insertShape, insertChart, insertCode, insertTable, onPresent, slide],
+    );
+
     return (
         <div
             className={`fs-editor flex h-full w-full flex-col bg-zinc-100 dark:bg-zinc-950 ${className ?? ""}`}
             data-fancy-slides-editor={deck.id}
         >
             {/* Top toolbar */}
-            {!hideToolbar && (
-                <EditorToolbar
-                    title={deck.title}
-                    onTitleChange={(t) => ops.setTitle(t)}
-                    themeName={deck.theme.name}
-                    onApplyTheme={(t) => ops.applyTheme(t)}
-                    onInsertText={insertText}
-                    onInsertImage={insertImage}
-                    onInsertShape={insertShape}
-                    onInsertChart={insertChart}
-                    onInsertCode={insertCode}
-                    onInsertTable={insertTable}
-                    onPresent={onPresent}
-                    disabled={!slide}
-                    toolbarExtra={toolbarExtra}
-                />
-            )}
+            {!hideToolbar &&
+                (renderToolbar ? (
+                    renderToolbar(toolbarApi)
+                ) : (
+                    <EditorToolbar
+                        title={deck.title}
+                        onTitleChange={(t) => ops.setTitle(t)}
+                        themeName={deck.theme.name}
+                        onApplyTheme={(t) => ops.applyTheme(t)}
+                        themes={themes}
+                        onInsertText={insertText}
+                        onInsertImage={insertImage}
+                        onInsertShape={insertShape}
+                        onInsertChart={insertChart}
+                        onInsertCode={insertCode}
+                        onInsertTable={insertTable}
+                        onPresent={onPresent}
+                        disabled={!slide}
+                        toolbarExtra={toolbarExtra}
+                    />
+                ))}
 
             {/* Main editing area */}
             <div className="flex min-h-0 flex-1">

@@ -8,7 +8,7 @@
  * Streaming OUT: read `value` / `onChange` from the controlled editor, or call
  * `serializeDeck(deck)`.
  * Streaming IN: `parseDeck(json)` → feed to `DeckEditor`'s `value`, or apply a
- * `{ kind: "deck_set", deck }` op (also exposed as the bridge's `deck_set` tool).
+ * `{ op: "deck.replace", deck }` op (also exposed as the bridge's `deck_set` tool).
  */
 
 import type { Deck, SlideElement } from "../types";
@@ -66,21 +66,43 @@ export function validateDeck(deck: unknown): DeckValidation {
     return { ok: errors.length === 0, errors };
 }
 
+/** A deck migration: transform a deck from version `to - 1` into version `to`. */
+export type DeckMigration = (deck: any) => any; // eslint-disable-line @typescript-eslint/no-explicit-any
+
+/** Consumer-registered migrations, keyed by the version they migrate *to*. */
+const deckMigrations: Record<number, DeckMigration> = {};
+
+/**
+ * Register a migration that upgrades a deck from version `toVersion - 1` to
+ * `toVersion`. Called by `migrateDeck` (and so by `<DeckEditor>` / `useDeckState`
+ * on load). Keep these in lockstep with `dark-slide`'s PHP-side migrations.
+ *
+ * ```ts
+ * registerDeckMigration(2, (deck) => ({ ...deck, slides: deck.slides.map(addLayoutDefault) }));
+ * ```
+ */
+export function registerDeckMigration(toVersion: number, migrate: DeckMigration): void {
+    deckMigrations[toVersion] = migrate;
+}
+
 /**
  * Migrate a deck authored against an older schema version forward to the
- * current one. Today it only stamps the version (no breaking changes yet); the
- * `switch` is where future migrations slot in, each bumping `version` by one.
+ * current one, applying each registered {@link registerDeckMigration} step in
+ * order, then stamping `version`. Idempotent: a current deck is returned
+ * untouched (same reference), so callers can `if (migrated !== deck) persist()`.
  */
 export function migrateDeck(deck: Deck): Deck {
-    let d = deck;
+    let d: any = deck; // eslint-disable-line @typescript-eslint/no-explicit-any
     let v = d.version ?? 1;
     while (v < SCHEMA_VERSION) {
-        switch (v) {
-            // case 1: d = { ...d, /* …migrate v1 → v2… */ }; break;
-            default:
-                v = SCHEMA_VERSION; // no migration registered — jump to current
+        const to = v + 1;
+        const fn = deckMigrations[to];
+        if (fn) {
+            d = fn(d);
+            v = to;
+        } else {
+            v = SCHEMA_VERSION; // no migration registered for this step — jump to current
         }
-        v += 1;
     }
     return d.version === SCHEMA_VERSION ? d : { ...d, version: SCHEMA_VERSION };
 }

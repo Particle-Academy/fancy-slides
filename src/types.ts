@@ -68,6 +68,12 @@ export interface Slide {
     transition?: SlideTransition;
     /** Speaker notes — markdown. */
     notes?: string;
+    /**
+     * Plain-text narration script for AI-narrated decks: TTS reads from
+     * `narration`, presenter view shows `notes`. Opaque to the pptx writer
+     * (stored as data, not rendered into the slide).
+     */
+    narration?: string;
     /** Free-form metadata — `{ title, tags, durationSec, … }`. */
     metadata?: Record<string, unknown>;
 }
@@ -326,10 +332,53 @@ export interface DeckActivity {
     op: DeckOp;
 }
 
+/**
+ * The canonical, language-neutral deck operation vocabulary (v0.13+).
+ *
+ * Every op is a flat JSON object discriminated by a dotted `op` string. The
+ * shape is deliberately language-neutral so the *same* op contract is shared
+ * with the sibling `dark-slide` PHP package: an op emitted by `<DeckEditor>` in
+ * the browser can be reduced server-side by `DarkSlide\Reducer::apply()`, and a
+ * server-computed `DarkSlide\Agent::diff()` replays in the editor — one
+ * vocabulary, one reducer per authoritative host. Published as a JSON Schema via
+ * {@link deckOpSchema} so any backend can validate it.
+ *
+ * Ids are always named `slideId` / `elementId` (never a bare `id`), and `op`
+ * names are `subject.verb` in camelCase. Migrating from the pre-0.13
+ * `kind`-flavored ops: {@link mapLegacyOp}.
+ */
 export type DeckOp =
+    | { op: "deck.setTitle"; title: string }
+    | { op: "deck.setTheme"; theme: Theme }
+    /** Replace the entire deck atomically — stream a full presentation IN in one op. */
+    | { op: "deck.replace"; deck: Deck }
+    | { op: "slide.add"; index: number; slide: Slide }
+    | { op: "slide.remove"; slideId: string }
+    | { op: "slide.reorder"; slideId: string; toIndex: number }
+    | { op: "slide.setLayout"; slideId: string; layout: SlideLayout }
+    | { op: "slide.setNotes"; slideId: string; notes: string }
+    | { op: "slide.setBackground"; slideId: string; background?: SlideBackground }
+    | { op: "slide.setTransition"; slideId: string; transition?: SlideTransition }
+    | { op: "element.add"; slideId: string; element: SlideElement }
+    | { op: "element.remove"; slideId: string; elementId: string }
+    | { op: "element.update"; slideId: string; elementId: string; patch: Partial<SlideElement> }
+    | { op: "element.move"; slideId: string; elementId: string; x: number; y: number }
+    | { op: "element.resize"; slideId: string; elementId: string; w: number; h: number }
+    | { op: "element.setAnimation"; slideId: string; elementId: string; animation?: ElementAnimation };
+
+/** The dotted `op` discriminator of every {@link DeckOp}. */
+export type DeckOpType = DeckOp["op"];
+
+/**
+ * The pre-0.13 `kind`-flavored op vocabulary. Retained so existing consumers can
+ * map their stored/streamed ops forward with {@link mapLegacyOp}. Prefer
+ * {@link DeckOp} in new code.
+ *
+ * @deprecated Use {@link DeckOp}; convert with {@link mapLegacyOp}.
+ */
+export type LegacyDeckOp =
     | { kind: "deck_set_title"; title: string }
     | { kind: "deck_apply_theme"; theme: Theme }
-    /** Replace the entire deck atomically — stream a full presentation IN in one op. */
     | { kind: "deck_set"; deck: Deck }
     | { kind: "slide_add"; index: number; slide: Slide }
     | { kind: "slide_remove"; id: string }

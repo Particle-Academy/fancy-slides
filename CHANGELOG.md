@@ -1,5 +1,41 @@
 # Changelog
 
+## 0.13.0 — 2026-06-08
+
+The "one deck contract, two languages" release — resolving the whole open
+issue set with the sibling `dark-slide` PHP package (Decksmith's asks).
+
+### Changed (breaking)
+- **Canonical `DeckOp` vocabulary.** Ops are now flat, language-neutral objects
+  discriminated by a dotted `op` string (`slide.add`, `element.update`, …) with
+  `slideId`/`elementId` everywhere — replacing the old `kind`-flavored ops. This
+  is the contract `dark-slide`'s `Reducer`/`Differ` mirror byte-for-byte, so a
+  server-authoritative host runs **one** reducer. `reduceDeck`, `useDeckState`,
+  and `DeckEditor.onOp` all speak it.
+  - **Migration:** `mapLegacyOp(oldOp)` converts a stored/streamed `kind`-op
+    forward. `deckOpSchema()` is the JSON Schema of record.
+
+### Added
+- **`useDeckSync`** — the live-editing glue in one hook: controlled deck state,
+  debounced full-deck persist, optional op-channel subscribe + replay, and a
+  `'idle' | 'saving' | 'agent-active' | 'error'` status. Laravel default via
+  `persistUrl`, or bring a `transport` for any stack. (FS #2)
+- **`DeckEditor` / `useDeckState` `idStrategy`** — `'client'` (default) |
+  `'optimistic'` | `'server'`; the latter two mint provisional `tmp_…` ids for
+  collaborative/agent reconciliation. (FS #4)
+- **Schema versioning on load** — `<DeckEditor>` runs `migrateDeck(value)` on
+  mount and emits a normalized `onChange`; `registerDeckMigration(toVersion, fn)`
+  registers consumer migrations. (FS #3)
+- **Compositional toolbar** — `renderToolbar(api)` + `EditorToolbar.Title` /
+  `.Insert` / `.InsertButton` / `.Themes` / `.Trailing` slots; `EditorToolbar`'s
+  prop-driven mode is unchanged. (FS #5)
+- **`themes` prop** on `DeckEditor` / `EditorToolbar` — merge user-authored
+  themes into the picker. (FS #6)
+- **`registerShortcut(combo, handler)` + `activeKeymap()`** on `useSlideKeyboard`
+  — add `Mod+S` / `Cmd+K` / `/` shortcuts without forking. (FS #7)
+- **`Slide.narration`** — plain-text narration script for AI-narrated decks
+  (TTS reads `narration`, presenter view shows `notes`). (DS #7)
+
 ## 0.12.0 — 2026-05-31
 
 ### Changed

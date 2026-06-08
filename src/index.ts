@@ -20,7 +20,7 @@ export { SlideRail } from "./components/SlideRail";
 export type { SlideRailProps } from "./components/SlideRail";
 
 export { EditorToolbar } from "./components/EditorToolbar";
-export type { EditorToolbarProps, ChartKind } from "./components/EditorToolbar";
+export type { EditorToolbarProps, ChartKind, ToolbarApi } from "./components/EditorToolbar";
 
 export { ElementInspector } from "./components/ElementInspector";
 export type { ElementInspectorProps } from "./components/ElementInspector";
@@ -39,10 +39,17 @@ export type { ShapeElementRendererProps } from "./components/elements/ShapeEleme
 
 // Hooks
 export { useSlideKeyboard } from "./hooks/use-slide-keyboard";
-export type { SlideKeyboardOptions } from "./hooks/use-slide-keyboard";
+export type { SlideKeyboardOptions, SlideKeyboardApi, ShortcutHandler, KeymapEntry } from "./hooks/use-slide-keyboard";
 
 export { useDeckState, reduce as reduceDeck } from "./hooks/use-deck-state";
-export type { UseDeckStateOptions, DeckStateApi } from "./hooks/use-deck-state";
+export type { UseDeckStateOptions, DeckStateApi, IdStrategy } from "./hooks/use-deck-state";
+
+// Live-sync glue — debounced persist + op-channel subscribe + status
+export { useDeckSync } from "./hooks/use-deck-sync";
+export type { UseDeckSyncOptions, DeckSyncApi, DeckSyncStatus, DeckSyncTransport } from "./hooks/use-deck-sync";
+
+// Canonical DeckOp vocabulary — the contract shared with dark-slide
+export { mapLegacyOp, deckOpSchema, DECK_OP_TYPES } from "./ops";
 
 // Theme
 export { defaultTheme, darkTheme, vividTheme, builtinThemes } from "./theme/default-theme";
@@ -53,8 +60,8 @@ export { nextId, slideId, elementId, deckId } from "./utils/ids";
 export { chartStarterOption } from "./utils/chart-presets";
 export { collectBuilds, buildSteps, totalBuildSteps, visibleElementIds, buildsForStep, stepDelays, splitParagraphs, isByParagraph, paragraphReveals } from "./utils/builds";
 export type { Build, BuildStep, ParaReveal } from "./utils/builds";
-export { serializeDeck, parseDeck, validateDeck, migrateDeck } from "./utils/serialize";
-export type { DeckValidation } from "./utils/serialize";
+export { serializeDeck, parseDeck, validateDeck, migrateDeck, registerDeckMigration } from "./utils/serialize";
+export type { DeckValidation, DeckMigration } from "./utils/serialize";
 
 // Schema version constant
 export { SCHEMA_VERSION } from "./types";
@@ -86,4 +93,6 @@ export type {
     ThemeFonts,
     DeckActivity,
     DeckOp,
+    DeckOpType,
+    LegacyDeckOp,
 } from "./types";
