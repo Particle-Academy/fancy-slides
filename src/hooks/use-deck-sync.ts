@@ -11,8 +11,12 @@ export type DeckSyncStatus = "idle" | "saving" | "agent-active" | "error";
  * `persistUrl` (no live channel).
  */
 export interface DeckSyncTransport {
-    /** Persist the full deck. Reject to surface the `"error"` status. */
-    persist: (deck: Deck) => Promise<void>;
+    /**
+     * Persist the full deck. Reject to surface the `"error"` status. **Optional**
+     * — omit it (provide only `subscribe`) and the built-in `persistUrl` PUT is
+     * used instead, so a Laravel/Echo consumer drops to a one-line `subscribe`.
+     */
+    persist?: (deck: Deck) => Promise<void>;
     /**
      * Subscribe to a remote op channel. Invoke `onOp` for each incoming op;
      * return an unsubscribe function. Omit to skip live updates.
@@ -25,9 +29,13 @@ export interface UseDeckSyncOptions {
     initial: Deck;
     /** Debounce window for the full-deck persist after edits. Default 600ms. */
     debounceMs?: number;
-    /** A transport. Provide this OR `persistUrl`. */
+    /**
+     * A transport seam. Provide `persist` to override saving and/or `subscribe`
+     * for live ops. Omit `persist` (subscribe-only) to keep the built-in
+     * `persistUrl` save — so `transport.subscribe` and `persistUrl` coexist.
+     */
     transport?: DeckSyncTransport;
-    /** Laravel/Inertia convenience — PUT `{ deck }` as JSON here. Ignored when `transport` is set. */
+    /** Laravel/Inertia convenience — PUT `{ deck }` as JSON here. Used whenever `transport.persist` is omitted (so it can pair with a subscribe-only transport). */
     persistUrl?: string;
     /** Header carrying the CSRF token for `persistUrl`. Default `"X-XSRF-TOKEN"`. */
     csrfHeader?: string;
@@ -65,8 +73,8 @@ function readCookie(name: string): string | undefined {
  * ```tsx
  * const { deck, applyOp, setDeck, status, flush } = useDeckSync({
  *   initial: document.deck,
- *   persistUrl: `/documents/${id}/deck`,
- *   transport: { persist, subscribe },   // or Laravel default via persistUrl
+ *   persistUrl: `/documents/${id}/deck`,            // built-in Laravel PUT
+ *   transport: { subscribe: (onOp) => echo.private(`deck.${id}`).listen('.deck.op', (e) => onOp(e.op)) },
  * });
  * <DeckEditor value={deck} onChange={setDeck} onOp={applyOp} />
  * ```
@@ -93,7 +101,7 @@ export function useDeckSync(options: UseDeckSyncOptions): DeckSyncApi {
         const current = deckRef.current;
         setStatus("saving");
         try {
-            if (t) {
+            if (t?.persist) {
                 await t.persist(current);
             } else if (url) {
                 const xsrf = token ?? readCookie("XSRF-TOKEN");

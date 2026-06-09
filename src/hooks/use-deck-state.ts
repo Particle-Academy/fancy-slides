@@ -3,6 +3,23 @@ import type { Deck, DeckOp, ElementAnimation, Slide, SlideElement, SlideLayout, 
 import { elementId, slideId } from "../utils/ids";
 
 /**
+ * Throw an `Error` naming the missing slide/element an op targets — the strict
+ * pre-check behind `reduce(deck, op, { onMissing: "throw" })`. Deck-level ops
+ * and `slide.add` address nothing existing, so they always pass.
+ */
+function assertTargetsExist(deck: Deck, op: DeckOp): void {
+    const sid = "slideId" in op ? op.slideId : undefined;
+    if (sid === undefined) return;
+    const slide = deck.slides.find((s) => s.id === sid);
+    if (!slide) throw new Error(`No slide '${sid}' in the deck.`);
+    const eid = "elementId" in op ? op.elementId : undefined;
+    if (eid === undefined) return;
+    if (!slide.elements.some((e) => e.id === eid)) {
+        throw new Error(`No element '${eid}' on slide '${sid}'.`);
+    }
+}
+
+/**
  * Hook that wraps a controlled deck with a typed mutation API. Every helper
  * applies a `DeckOp` and emits the new deck via `onChange`. Consumers that
  * want raw control over the deck can skip this and edit the deck directly
@@ -137,12 +154,29 @@ export function useDeckState({ value, onChange, onOp, idStrategy = "client" }: U
     }, [apply, value.slides, mkId]);
 }
 
+/** How `reduce` treats an op whose target slide/element isn't on the deck. */
+export interface ReduceOptions {
+    /**
+     * `"skip"` (default) returns the deck unchanged on a missing target —
+     * resilient for broadcast replay. `"throw"` raises an `Error` naming the
+     * missing id, so an agent/MCP tool path gets a correctable signal instead
+     * of a silent no-op. Twin of dark-slide's `Reducer::strictApply()`.
+     */
+    onMissing?: "skip" | "throw";
+}
+
 /**
  * Pure reducer — the single source of truth for how every DeckOp mutates a
  * Deck. Agents, undo stacks, replay logs, and the editor all funnel through
  * this. Never mutates the input.
+ *
+ * Pass `{ onMissing: "throw" }` on agent-facing paths to surface bad targets
+ * (`reduce(deck, op, { onMissing: "throw" })` — exported as `reduceDeck`).
  */
-export function reduce(deck: Deck, op: DeckOp): Deck {
+export function reduce(deck: Deck, op: DeckOp, opts?: ReduceOptions): Deck {
+    if (opts?.onMissing === "throw") {
+        assertTargetsExist(deck, op);
+    }
     switch (op.op) {
         case "deck.setTitle":
             return { ...deck, title: op.title };

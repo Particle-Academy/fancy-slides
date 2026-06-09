@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.14.0 — 2026-06-09
+
+Two "felt-while-using" follow-ups surfaced by Decksmith's adoption of the 0.13 API.
+
+### Added
+- **Strict-mode `reduce` / `reduceDeck`** (#8, twin of dark-slide #8) — pass
+  `reduce(deck, op, { onMissing: "throw" })` to throw an `Error` naming the
+  missing slide/element instead of silently returning the deck unchanged. The
+  default stays `"skip"` (resilient replay); strict mode gives agent/MCP tool
+  paths a correctable signal. New `ReduceOptions` export.
+
+### Changed
+- **`useDeckSync` — `transport.subscribe` now coexists with `persistUrl`** (#8).
+  `DeckSyncTransport.persist` is now optional: provide only `subscribe` and the
+  built-in `persistUrl` PUT (CSRF + headers + status mapping) still runs, so a
+  Laravel + Echo consumer drops to a one-line subscribe instead of
+  re-implementing persist. Backward-compatible — an explicit `transport.persist`
+  still wins.
+
 ## 0.13.0 — 2026-06-08
 
 The "one deck contract, two languages" release — resolving the whole open
