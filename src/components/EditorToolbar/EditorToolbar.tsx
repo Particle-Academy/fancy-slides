@@ -1,5 +1,5 @@
 import { createContext, useContext, type ReactNode } from "react";
-import { Action, Badge, Dropdown, Separator, Tooltip } from "@particle-academy/react-fancy";
+import { Button, Badge, Dropdown, Separator, Tooltip } from "@particle-academy/react-fancy";
 import type { ShapeKind, Theme } from "../../types";
 import { builtinThemes } from "../../theme/default-theme";
 
@@ -178,16 +178,16 @@ function InsertGroup({
     return (
         <>
             <Tooltip content="Insert text">
-                <Action variant="ghost" size="sm" icon="type" onClick={onText} disabled={disabled} aria-label="Insert text" />
+                <Button variant="ghost"size="sm" icon="type" onClick={onText} disabled={disabled} aria-label="Insert text" />
             </Tooltip>
             <Tooltip content="Insert image">
-                <Action variant="ghost" size="sm" icon="image" onClick={onImage} disabled={disabled} aria-label="Insert image" />
+                <Button variant="ghost"size="sm" icon="image" onClick={onImage} disabled={disabled} aria-label="Insert image" />
             </Tooltip>
             <Dropdown>
                 <Dropdown.Trigger>
-                    <Action variant="ghost" size="sm" icon="square" iconTrailing="chevron-down" disabled={disabled}>
+                    <Button variant="ghost"size="sm" icon="square" iconTrailing="chevron-down" disabled={disabled}>
                         Shape
-                    </Action>
+                    </Button>
                 </Dropdown.Trigger>
                 <Dropdown.Items>
                     <Dropdown.Item onClick={() => onShape?.("rect")}>Rectangle</Dropdown.Item>
@@ -200,7 +200,7 @@ function InsertGroup({
             </Dropdown>
             <Dropdown>
                 <Dropdown.Trigger>
-                    <Action variant="ghost" size="sm" icon="bar-chart" iconTrailing="chevron-down" disabled={disabled} aria-label="Insert chart" />
+                    <Button variant="ghost"size="sm" icon="bar-chart" iconTrailing="chevron-down" disabled={disabled} aria-label="Insert chart" />
                 </Dropdown.Trigger>
                 <Dropdown.Items>
                     <Dropdown.Item onClick={() => onChart?.("bar")}>Bar chart</Dropdown.Item>
@@ -211,10 +211,10 @@ function InsertGroup({
                 </Dropdown.Items>
             </Dropdown>
             <Tooltip content="Insert code">
-                <Action variant="ghost" size="sm" icon="code" onClick={onCode} disabled={disabled} aria-label="Insert code" />
+                <Button variant="ghost"size="sm" icon="code" onClick={onCode} disabled={disabled} aria-label="Insert code" />
             </Tooltip>
             <Tooltip content="Insert table">
-                <Action variant="ghost" size="sm" icon="table" onClick={onTable} disabled={disabled} aria-label="Insert table" />
+                <Button variant="ghost"size="sm" icon="table" onClick={onTable} disabled={disabled} aria-label="Insert table" />
             </Tooltip>
             {children}
         </>
@@ -225,10 +225,10 @@ function ThemePicker({ themeName, themes, onApply }: { themeName?: string; theme
     return (
         <Dropdown>
             <Dropdown.Trigger>
-                <Action variant="ghost" size="sm" iconTrailing="chevron-down">
+                <Button variant="ghost"size="sm" iconTrailing="chevron-down">
                     <Badge size="sm" color="zinc">{themeName ?? "default"}</Badge>
                     <span className="ml-2">Theme</span>
-                </Action>
+                </Button>
             </Dropdown.Trigger>
             <Dropdown.Items>
                 {themes.map((t) => (
@@ -244,9 +244,9 @@ function ThemePicker({ themeName, themes, onApply }: { themeName?: string; theme
 function PresentButton({ onPresent }: { onPresent?: () => void }) {
     return (
         <Tooltip content="Present (F)">
-            <Action color="violet" size="sm" icon="play" onClick={onPresent}>
+            <Button color="violet"size="sm" icon="play" onClick={onPresent}>
                 Present
-            </Action>
+            </Button>
         </Tooltip>
     );
 }
@@ -282,7 +282,7 @@ EditorToolbar.InsertButton = function InsertButton({ kind }: { kind: "text" | "i
     const icon = { text: "type", image: "image", code: "code", table: "table" } as const;
     return (
         <Tooltip content={`Insert ${kind}`}>
-            <Action variant="ghost" size="sm" icon={icon[kind]} onClick={map[kind]} disabled={api.disabled} aria-label={`Insert ${kind}`} />
+            <Button variant="ghost"size="sm" icon={icon[kind]} onClick={map[kind]} disabled={api.disabled} aria-label={`Insert ${kind}`} />
         </Tooltip>
     );
 };

@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from "react";
-import { Action, ContextMenu, Text } from "@particle-academy/react-fancy";
+import { Button, ContextMenu, Text } from "@particle-academy/react-fancy";
 import type { Slide, SlideElement, Theme } from "../../types";
 import { SlideThumbnail } from "../SlideThumbnail";
 
@@ -57,9 +57,9 @@ export function SlideRail({
                 <Text size="xs" weight="semibold" className="!uppercase !tracking-wider !text-zinc-500">
                     Slides · {slides.length}
                 </Text>
-                <Action size="xs" icon="plus" onClick={() => onAdd()} aria-label="Add slide">
+                <Button size="xs" icon="plus" onClick={() => onAdd()} aria-label="Add slide">
                     Add
-                </Action>
+                </Button>
             </div>
             <div className="flex flex-col gap-3 px-3 pb-3">
                 {slides.map((slide, i) => (

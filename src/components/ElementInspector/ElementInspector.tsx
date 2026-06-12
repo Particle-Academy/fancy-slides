@@ -1,5 +1,5 @@
 import { useRef } from "react";
-import { Action, Card, ColorPicker, Heading, Input, Select, Separator, Slider, Switch, Tabs, Text, Textarea } from "@particle-academy/react-fancy";
+import { Button, Card, ColorPicker, Heading, Input, Select, Separator, Slider, Switch, Tabs, Text, Textarea } from "@particle-academy/react-fancy";
 import type { ElementAnimation, Slide as SlideData, SlideBackground, SlideElement, SlideLayout, SlideTransition, TextElement, TextStyle, ImageElement, ShapeElement, CodeElement, ChartElement, TableElement, EmbedElement } from "../../types";
 import { chartModelFromOption, chartOptionFromModel, chartColorAt, type ChartKind, type ChartModel } from "../../utils/chart-presets";
 import { collectBuilds } from "../../utils/builds";
@@ -32,7 +32,7 @@ export interface ElementInspectorProps {
  * Right-hand inspector. Tabs split position + style + advanced properties.
  * Per-element-type controls drop in under the Style tab. Built on
  * react-fancy `Card`, `Tabs`, `Input`, `Select`, `Slider`, `ColorPicker`,
- * `Action`.
+ * `Button`.
  */
 export function ElementInspector({ element, onPatch, onDelete, onLockToggle, slide, onSetTransition, onSetBackground, onSetLayout, onSetAnimation, onSetElementAnimation }: ElementInspectorProps) {
     // No element selected: show slide-level settings when a slide is available.
@@ -64,9 +64,9 @@ export function ElementInspector({ element, onPatch, onDelete, onLockToggle, sli
                     </Text>
                 </div>
                 <div className="flex items-center gap-1">
-                    <Action size="xs" variant="ghost" icon={element.locked ? "lock" : "unlock"} onClick={() => onLockToggle?.(!element.locked)} aria-label={element.locked ? "Unlock" : "Lock"} />
+                    <Button size="xs" variant="ghost" icon={element.locked ? "lock" : "unlock"} onClick={() => onLockToggle?.(!element.locked)} aria-label={element.locked ? "Unlock" : "Lock"} />
                     {onDelete && (
-                        <Action size="xs" variant="ghost" color="red" icon="trash" onClick={onDelete} aria-label="Delete" />
+                        <Button size="xs" variant="ghost" color="red" icon="trash" onClick={onDelete} aria-label="Delete" />
                     )}
                 </div>
             </div>
@@ -350,8 +350,8 @@ function BuildOrderList({
                                 {b.animation.effect} · {b.animation.trigger ?? "on-click"}
                             </Text>
                         </div>
-                        <Action size="xs" variant="ghost" icon="chevron-up" onClick={() => move(i, i - 1)} disabled={i === 0} aria-label="Move earlier" />
-                        <Action size="xs" variant="ghost" icon="chevron-down" onClick={() => move(i, i + 1)} disabled={i === builds.length - 1} aria-label="Move later" />
+                        <Button size="xs" variant="ghost" icon="chevron-up" onClick={() => move(i, i - 1)} disabled={i === 0} aria-label="Move earlier" />
+                        <Button size="xs" variant="ghost" icon="chevron-down" onClick={() => move(i, i + 1)} disabled={i === builds.length - 1} aria-label="Move later" />
                     </div>
                 ))
             )}
@@ -386,8 +386,8 @@ function LayoutSection({ element, onPatch, siblings }: { element: SlideElement; 
             <Slider label="Rotation" value={element.rotation ?? 0} onValueChange={(v) => onPatch({ rotation: Number(v) })} min={-180} max={180} />
             <div className="flex items-end gap-2">
                 <Input label="Z-index" type="number" value={String(element.z ?? 0)} onChange={(e) => onPatch({ z: parseInt(e.target.value, 10) || 0 })} className="flex-1" />
-                <Action size="sm" variant="ghost" onClick={bringToFront} aria-label="Bring to front">Front</Action>
-                <Action size="sm" variant="ghost" onClick={sendToBack} aria-label="Send to back">Back</Action>
+                <Button size="sm" variant="ghost" onClick={bringToFront} aria-label="Bring to front">Front</Button>
+                <Button size="sm" variant="ghost" onClick={sendToBack} aria-label="Send to back">Back</Button>
             </div>
             <Separator />
             <Input
@@ -412,9 +412,9 @@ function AdvancedSection({ element, onPatch }: { element: SlideElement; onPatch:
             </Text>
             <Separator />
             <div className="flex items-center gap-2">
-                <Action size="sm" variant={element.hidden ? "default" : "ghost"} onClick={() => onPatch({ hidden: !element.hidden })}>
+                <Button size="sm" variant={element.hidden ? "default" : "ghost"} onClick={() => onPatch({ hidden: !element.hidden })}>
                     {element.hidden ? "Hidden — show" : "Hide on slide"}
-                </Action>
+                </Button>
             </div>
         </div>
     );
@@ -630,7 +630,7 @@ function ImageStyleControls({ element, onPatch }: { element: ImageElement; onPat
 
     return (
         <div className="space-y-3">
-            {/* Hidden native file input, triggered by the Action below. */}
+            {/* Hidden native file input, triggered by the Button below. */}
             <input
                 ref={fileRef}
                 type="file"
@@ -642,9 +642,9 @@ function ImageStyleControls({ element, onPatch }: { element: ImageElement; onPat
                     e.target.value = "";
                 }}
             />
-            <Action size="sm" variant="ghost" icon="upload" onClick={() => fileRef.current?.click()}>
+            <Button size="sm" variant="ghost" icon="upload" onClick={() => fileRef.current?.click()}>
                 Upload image
-            </Action>
+            </Button>
             <Textarea label="Image URL" value={element.src} onValueChange={(v) => onPatch({ src: v })} rows={2} />
             <Input label="Alt text" value={element.alt ?? ""} onChange={(e) => onPatch({ alt: e.target.value })} />
             <Select
@@ -664,9 +664,9 @@ function ImageStyleControls({ element, onPatch }: { element: ImageElement; onPat
                     Crop
                 </Heading>
                 {crop && (
-                    <Action size="xs" variant="ghost" onClick={() => onPatch({ crop: undefined })}>
+                    <Button size="xs" variant="ghost" onClick={() => onPatch({ crop: undefined })}>
                         Clear crop
-                    </Action>
+                    </Button>
                 )}
             </div>
             <Slider label="X" value={crop?.x ?? 0} onValueChange={(v) => setCrop({ x: Number(v) })} min={0} max={1} step={0.01} showValue />
@@ -854,10 +854,10 @@ function PieSliceEditor({ model, onChange }: { model: ChartModel; onChange: (m: 
                 <div key={i} className="flex items-end gap-2">
                     <div className="flex-1"><Input label={i === 0 ? "Name" : undefined} value={s.name} onChange={(e) => update(i, { name: e.target.value })} /></div>
                     <div className="w-20"><Input label={i === 0 ? "Value" : undefined} type="number" value={String(s.value)} onChange={(e) => update(i, { value: parseFloat(e.target.value) || 0 })} /></div>
-                    <Action size="xs" variant="ghost" color="red" icon="x" onClick={() => remove(i)} aria-label="Remove slice" />
+                    <Button size="xs" variant="ghost" color="red" icon="x" onClick={() => remove(i)} aria-label="Remove slice" />
                 </div>
             ))}
-            <Action size="xs" variant="ghost" icon="plus" onClick={add}>Add slice</Action>
+            <Button size="xs" variant="ghost" icon="plus" onClick={add}>Add slice</Button>
         </div>
     );
 }
@@ -911,10 +911,10 @@ function CartesianChartEditor({ model, onChange }: { model: ChartModel; onChange
                 {categories.map((c, i) => (
                     <div key={i} className="flex items-center gap-2">
                         <div className="flex-1"><Input value={c} onChange={(e) => updateCategory(i, e.target.value)} /></div>
-                        <Action size="xs" variant="ghost" color="red" icon="x" onClick={() => removeCategory(i)} aria-label="Remove category" />
+                        <Button size="xs" variant="ghost" color="red" icon="x" onClick={() => removeCategory(i)} aria-label="Remove category" />
                     </div>
                 ))}
-                <Action size="xs" variant="ghost" icon="plus" onClick={addCategory}>Add category</Action>
+                <Button size="xs" variant="ghost" icon="plus" onClick={addCategory}>Add category</Button>
             </div>
 
             <Separator />
@@ -926,7 +926,7 @@ function CartesianChartEditor({ model, onChange }: { model: ChartModel; onChange
                         <div className="flex items-end gap-2">
                             <div className="flex-1"><Input label="Name" value={s.name} onChange={(e) => updateSeries(si, { name: e.target.value })} /></div>
                             <FieldLabel label="Color"><ColorPicker value={s.color ?? chartColorAt(si)} onChange={(c) => updateSeries(si, { color: c })} /></FieldLabel>
-                            <Action size="xs" variant="ghost" color="red" icon="x" onClick={() => removeSeries(si)} aria-label="Remove series" />
+                            <Button size="xs" variant="ghost" color="red" icon="x" onClick={() => removeSeries(si)} aria-label="Remove series" />
                         </div>
                         <div className="grid grid-cols-2 gap-2">
                             {categories.map((c, ci) => (
@@ -941,7 +941,7 @@ function CartesianChartEditor({ model, onChange }: { model: ChartModel; onChange
                         </div>
                     </div>
                 ))}
-                <Action size="xs" variant="ghost" icon="plus" onClick={addSeries}>Add series</Action>
+                <Button size="xs" variant="ghost" icon="plus" onClick={addSeries}>Add series</Button>
             </div>
         </div>
     );
@@ -1002,10 +1002,10 @@ function TableStyleControls({ element, onPatch }: { element: TableElement; onPat
                             <Input value={c.label} onChange={(e) => setColumnLabel(i, e.target.value)} aria-label={`Column ${i + 1} label`} />
                         </div>
                         <Text size="xs" className="!font-mono !text-zinc-400">{c.key}</Text>
-                        <Action size="xs" variant="ghost" color="red" icon="x" onClick={() => removeColumn(i)} aria-label="Remove column" />
+                        <Button size="xs" variant="ghost" color="red" icon="x" onClick={() => removeColumn(i)} aria-label="Remove column" />
                     </div>
                 ))}
-                <Action size="xs" variant="ghost" icon="plus" onClick={addColumn}>Add column</Action>
+                <Button size="xs" variant="ghost" icon="plus" onClick={addColumn}>Add column</Button>
             </div>
 
             <Separator />
@@ -1028,10 +1028,10 @@ function TableStyleControls({ element, onPatch }: { element: TableElement; onPat
                                         />
                                     ))}
                                 </div>
-                                <Action size="xs" variant="ghost" color="red" icon="x" onClick={() => removeRow(rowIdx)} aria-label="Remove row" />
+                                <Button size="xs" variant="ghost" color="red" icon="x" onClick={() => removeRow(rowIdx)} aria-label="Remove row" />
                             </div>
                         ))}
-                        <Action size="xs" variant="ghost" icon="plus" onClick={addRow}>Add row</Action>
+                        <Button size="xs" variant="ghost" icon="plus" onClick={addRow}>Add row</Button>
                     </>
                 )}
             </div>
