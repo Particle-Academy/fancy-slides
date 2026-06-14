@@ -47,6 +47,21 @@ export function splitParagraphs(content: string): string[] {
 }
 
 /**
+ * The blocks a text element renders as in the static (non-build) path, given its
+ * `format`. Markdown/HTML content is split line-by-line (one block per `"\n"`) so
+ * a single newline is a hard line/paragraph break — the canonical line-based
+ * model (`splitParagraphs`, `normalizeSlideMarkdown`, dark-slide's pptx export).
+ * Passing the whole multi-line string to a CommonMark renderer would instead
+ * fold a lone `"\n"` into a soft break (a space), collapsing the lines.
+ *
+ * `plain` content is returned as a single block: it renders with
+ * `white-space: pre-wrap`, which already preserves its newlines.
+ */
+export function textBlocks(content: string, format: "markdown" | "html" | "plain"): string[] {
+    return format === "plain" ? [content] : splitParagraphs(content);
+}
+
+/**
  * Whether an element expands into per-paragraph builds: a text element whose
  * animation has `byParagraph` and that splits into 2+ paragraphs. With 0/1
  * paragraphs it behaves like a normal single build.

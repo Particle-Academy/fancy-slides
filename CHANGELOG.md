@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.14.2 — 2026-06-14
+
+### Fixed
+- **TextElement preview collapsed single newlines** (#10) — the static
+  (non-build) markdown/html render path handed the whole multi-line `content`
+  to react-fancy's `ContentRenderer`, where CommonMark folds a lone `"\n"` into
+  a soft break (a space), collapsing bullet lists and "label + description"
+  blocks onto one wrapped line. The path now renders line-by-line (new
+  `textBlocks` helper, mirroring the by-paragraph reveal path), so a single
+  `"\n"` is a hard break — matching the canonical line-based model
+  (`splitParagraphs`, `normalizeSlideMarkdown`) and the dark-slide pptx export.
+  Zero change to `ContentRenderer`. First vitest coverage for the package.
+
 ## 0.14.0 — 2026-06-09
 
 Two "felt-while-using" follow-ups surfaced by Decksmith's adoption of the 0.13 API.

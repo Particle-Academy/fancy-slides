@@ -2,7 +2,7 @@ import { useId, type CSSProperties } from "react";
 import { ContentRenderer, Editor } from "@particle-academy/react-fancy";
 import type { TextElement, Theme } from "../../../types";
 import { resolveTheme } from "../../../theme/theme-utils";
-import { splitParagraphs, type ParaReveal } from "../../../utils/builds";
+import { splitParagraphs, textBlocks, type ParaReveal } from "../../../utils/builds";
 import { buildEnterStyle } from "../../Slide/builds-style";
 import { PRESENTATION_EDITOR_ACTIONS, normalizeSlideMarkdown } from "./editor-preset";
 
@@ -179,6 +179,7 @@ export function TextElementRenderer({
                 padding: 0;
             }
             ${proseScope} :where(p, li) + :where(p, li, ul, ol) { margin-top: 0.4em; }
+            ${proseScope} > [data-fancy-slides-paragraph] + [data-fancy-slides-paragraph]:not(:empty) { margin-top: 0.4em; }
             ${proseScope} :where(ul, ol) { padding-left: 1.4em; }
             ${proseScope} :where(strong) { font-weight: ${Math.max(700, weight(style.weight) ?? 400 + 200)}; }
             ${proseScope} :where(a) { color: inherit; text-decoration: underline; }
@@ -227,10 +228,23 @@ export function TextElementRenderer({
         return <div style={css}>{element.content}</div>;
     }
 
+    // ─── Static (non-build) render ──────────────────────────────────────────
+    // Render line-by-line, mirroring the by-paragraph path above, so a single
+    // `"\n"` is a hard line/paragraph break — the canonical line-based model the
+    // rest of the system commits to (`splitParagraphs`, `normalizeSlideMarkdown`,
+    // dark-slide's `explode("\n", …)` pptx export). Passing the whole multi-line
+    // string to a markdown renderer would instead treat a lone `"\n"` as a
+    // CommonMark soft break (a space), collapsing bullet lists and
+    // "label + description" blocks onto one wrapped line.
+    const lines = textBlocks(element.content, format);
     return (
         <div data-fs-text-scope={scopeId} style={css}>
             {proseStyle}
-            <ContentRenderer value={element.content} format={format === "html" ? "html" : "markdown"} />
+            {lines.map((line, i) => (
+                <div key={i} data-fancy-slides-paragraph={i}>
+                    {renderChunk(line)}
+                </div>
+            ))}
         </div>
     );
 }
