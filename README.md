@@ -60,6 +60,38 @@ function App() {
 }
 ```
 
+### Composing a bespoke editor
+
+`<DeckEditor>` is the default layout over a **shared controller**. To build a
+custom editor — reposition panels, drop an app panel *beside* them, restyle each
+— compose the parts yourself. `DeckEditor.Provider` runs the controller
+(selection, ops, insert, toolbar surface); the slots read it via context, so
+selection and ops are shared, not re-derived. `useDeckEditor()` exposes the same
+controller to any panel of your own.
+
+```tsx
+import { DeckEditor, useDeckEditor } from "@particle-academy/fancy-slides";
+
+function Studio({ deck, setDeck }) {
+    return (
+        <DeckEditor.Provider value={deck} onChange={setDeck} onPresent={present}>
+            <MyTopBar />                         {/* your app chrome */}
+            <div className="studio-grid">
+                <MyAgentRail />                  {/* an app panel beside the editor */}
+                <DeckEditor.Rail className="studio-rail" />
+                <DeckEditor.Canvas className="studio-canvas" />
+                <DeckEditor.Inspector className="studio-inspector" />
+            </div>
+            <DeckEditor.StatusBar className="studio-status" />
+        </DeckEditor.Provider>
+    );
+}
+```
+
+Slots: `DeckEditor.Toolbar` / `.Rail` / `.Canvas` / `.Inspector` / `.Notes` /
+`.StatusBar`. Each accepts `className` (and most `style`). `DeckEditor.StatusBar`
+also takes `children` — a node or a render-prop `(ctx) => …` — for a bespoke bar.
+
 ## Human+ contract
 
 `fancy-slides` is designed around the Human+ contract: humans and agents share

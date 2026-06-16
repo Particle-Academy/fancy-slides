@@ -13,8 +13,30 @@ export type { PresenterViewProps } from "./components/PresenterView";
 export { SlideThumbnail } from "./components/SlideThumbnail";
 export type { SlideThumbnailProps } from "./components/SlideThumbnail";
 
-export { DeckEditor } from "./components/DeckEditor";
-export type { DeckEditorProps } from "./components/DeckEditor";
+export {
+    DeckEditor,
+    DeckEditorProvider,
+    useDeckEditor,
+    DeckEditorContext,
+    DeckEditorToolbar,
+    DeckEditorRail,
+    DeckEditorCanvas,
+    DeckEditorInspector,
+    DeckEditorNotes,
+    DeckEditorStatusBar,
+} from "./components/DeckEditor";
+export type {
+    DeckEditorProps,
+    DeckEditorProviderProps,
+    DeckEditorContextValue,
+    DeckEditorInsertApi,
+    DeckEditorToolbarProps,
+    DeckEditorRailProps,
+    DeckEditorCanvasProps,
+    DeckEditorInspectorProps,
+    DeckEditorNotesProps,
+    DeckEditorStatusBarProps,
+} from "./components/DeckEditor";
 
 export { SlideRail } from "./components/SlideRail";
 export type { SlideRailProps } from "./components/SlideRail";

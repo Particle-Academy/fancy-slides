@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.15.0 — 2026-06-16
+
+### Added
+- **Composable `DeckEditor` — compound parts sharing one controller** (#11,
+  filed from Decksmith). The editor's full chrome is now a thin default layout
+  over a shared controller, so you can compose a bespoke editor from the parts —
+  reposition panels, drop an app panel *beside* them, restyle each — without
+  re-implementing selection / ops / drag glue.
+  - `DeckEditor.Provider` (`DeckEditorProvider`) runs the controller (op surface,
+    slide + element selection, insert handlers, toolbar action surface) and
+    provides it via context.
+  - `useDeckEditor()` reads that controller from any panel of your own (throws a
+    clear error outside the provider, mirroring `EditorToolbar`'s slot guard).
+  - Slot parts `DeckEditor.Toolbar` / `.Rail` / `.Canvas` / `.Inspector` /
+    `.Notes` each read the shared controller and accept `className` / `style`;
+    new `DeckEditor.StatusBar` summarizes slide + selection (or takes a
+    render-prop for a bespoke bar).
+  - **Backward compatible:** `<DeckEditor>`'s public API, DOM, and classes are
+    unchanged — it now composes the same slots internally.
+
 ## 0.14.2 — 2026-06-14
 
 ### Fixed
