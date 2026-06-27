@@ -63,7 +63,7 @@ export function isDarkColor(color: string): boolean {
             return relativeLuminance(r, g, b) < 0.5;
         }
     }
-    const rgb = color.match(/rgba?\(([^)]+)\)/i);
+    const rgb = color.match(/rgba?\(([^()]+)\)/i);
     if (rgb) {
         const [r, g, b] = rgb[1].split(",").map((s) => parseInt(s.trim(), 10));
         if (!Number.isNaN(r) && !Number.isNaN(g) && !Number.isNaN(b)) {
