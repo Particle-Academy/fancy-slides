@@ -1,7 +1,7 @@
 {
   "name": "@particle-academy/fancy-slides",
   "version": "0.15.3",
-  "description": "Presentation editor + web viewer for the fancy UI set — Google-Slides-style deck authoring with a JSON-friendly schema, full keyboard-driven viewer, and an agent bridge so LLMs can compose decks directly.",
+  "description": "Presentation editor + web viewer for the fancy UI set \u2014 Google-Slides-style deck authoring with a JSON-friendly schema, full keyboard-driven viewer, and an agent bridge so LLMs can compose decks directly.",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Particle-Academy/fancy-slides.git"
@@ -30,7 +30,7 @@
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch",
-    "lint": "tsc --noEmit",
+    "lint": "tsc --noEmit && eslint .",
     "test": "vitest run",
     "clean": "rm -rf dist",
     "prepublishOnly": "tsup"
@@ -60,11 +60,14 @@
     "@testing-library/react": "^16.3.2",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
+    "eslint": "^10.8.0",
+    "eslint-plugin-react-hooks": "^7.1.1",
     "jsdom": "^25.0.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "tsup": "^8.5.0",
     "typescript": "^5.8.0",
+    "typescript-eslint": "^8.65.0",
     "vitest": "^4.1.8"
   },
   "publishConfig": {
