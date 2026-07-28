@@ -2,6 +2,24 @@
 
 ## [Unreleased]
 
+### Security
+
+- **Dev tree pulled a vulnerable `echarts`** (GHSA-fgmj-fm8m-jvvx, XSS, medium;
+  patched in 6.1.0). The `@particle-academy/fancy-echarts` **devDependency** was
+  pinned `^4.0.0`, which resolves to fancy-echarts 4.0.1 and drags in
+  `echarts@5.6.0` — while fancy-echarts 5.0.0 had already moved to the patched
+  `echarts ^6.1.0`. The stale pin was the whole cause, so the fix is the pin, not
+  an override: it now reads `^5.0.0` and the tree resolves `echarts@6.1.0`.
+
+  **No action needed, and nothing shipped was affected** — this is a
+  `devDependency`, so it never reached a published tarball or a consumer's tree.
+  It is worth fixing anyway: it is what this package builds and tests against.
+
+  The `peerDependencies` range still accepts `fancy-echarts ^3 || ^4 || ^5`, and
+  that is deliberate — narrowing it would break installs without protecting
+  anyone, since `echarts` is the consumer's own dependency to choose. If you
+  supply fancy-echarts 3 or 4, supply `echarts >= 6.1.0` with it.
+
 ## [0.15.3] — 2026-07-28
 
 ### Changed

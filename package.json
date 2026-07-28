@@ -54,7 +54,7 @@
   },
   "devDependencies": {
     "@particle-academy/fancy-code": "^0.9.0",
-    "@particle-academy/fancy-echarts": "^4.0.0",
+    "@particle-academy/fancy-echarts": "^5.0.0",
     "@particle-academy/react-fancy": "^4.0.0",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/react": "^16.3.2",
