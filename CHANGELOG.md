@@ -2,6 +2,33 @@
 
 ## [Unreleased]
 
+## [0.15.5] — 2026-07-29
+
+### Fixed
+
+- **A `table` element missing `columns` or `rows` crashed the whole deck.**
+  `TableHost` mapped over both unconditionally, so
+  `Cannot read properties of undefined (reading 'map')` was thrown *during
+  render* — which means it was not contained by the element. It unmounted
+  whatever the consumer wrapped `SlideViewer` in, and the error named none of the
+  responsible code.
+
+  Both fields are REQUIRED on `TableElement` and remain so; the type is a
+  compile-time contract and this element also arrives as plain JSON — from
+  storage, from an API, and above all from an **agent** authoring slides over the
+  MCP bridge. `{ type: "table" }` with no `columns` is a predictable agent
+  output, not an exotic one. A malformed element now degrades to blank instead of
+  taking down the deck, and a table with no columns renders nothing rather than an
+  empty bordered frame that reads as a styling bug.
+
+  **No action needed** — well-formed tables are unaffected.
+
+  Seven tests cover missing, null and wrong-typed `columns`/`rows`, a null row,
+  and a well-formed table as the counter-case. Six of them fail against the
+  previous release.
+
+  Reported as #12.
+
 ## [0.15.4] — 2026-07-29
 
 ### Fixed
