@@ -2,6 +2,41 @@
 
 ## [Unreleased]
 
+## [0.15.4] — 2026-07-29
+
+### Fixed
+
+- **`fancy-echarts` and `fancy-code` were REQUIRED peers, so every consumer
+  installed the chart engine and the code editor whether or not their slides used
+  them.** The package had no `peerDependenciesMeta` at all, and npm 7+
+  auto-installs required peers. A bare `npm i @particle-academy/fancy-slides`
+  pulled `echarts` 6.1.0, `fancy-echarts` and `fancy-code` — **122 MB of
+  `node_modules`**, measured, against zero after this change.
+
+  Both are now marked `optional`, which is what the source already assumed: they
+  load through guarded dynamic imports in `chart-host` / `code-host` /
+  `CodeInput`, each wrapped in `try/catch` and falling back to a `PeerMissing`
+  placeholder. Those files even carry the comment "fancy-echarts is an OPTIONAL
+  peer". The implementation was right and only the manifest disagreed — the
+  sibling packages that declare the same peer (`fancy-inertia`,
+  `agent-integrations`) already marked it optional, making this one the outlier.
+
+  **What you may need to DO.** If your decks contain `chart` or `code` elements
+  and you were relying on the automatic peer install, add the peer explicitly:
+
+  ```
+  npm i @particle-academy/fancy-echarts   # chart elements
+  npm i @particle-academy/fancy-code      # code elements
+  ```
+
+  Nothing crashes if you don't: the element renders a placeholder naming the
+  package to install. Everyone else gets a much smaller install and no action.
+
+  `react-fancy`, `react` and `react-dom` stay required — the base components
+  import them statically.
+
+  Reported as #13.
+
 ### Security
 
 - **Dev tree pulled a vulnerable `echarts`** (GHSA-fgmj-fm8m-jvvx, XSS, medium;
