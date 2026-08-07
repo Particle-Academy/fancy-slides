@@ -1,7 +1,7 @@
 {
   "name": "@particle-academy/fancy-slides",
-  "version": "0.15.5",
-  "description": "Presentation editor + web viewer for the fancy UI set \u2014 Google-Slides-style deck authoring with a JSON-friendly schema, full keyboard-driven viewer, and an agent bridge so LLMs can compose decks directly.",
+  "version": "0.16.0",
+  "description": "Presentation editor + web viewer for the fancy UI set — Google-Slides-style deck authoring with a JSON-friendly schema, full keyboard-driven viewer, and an agent bridge so LLMs can compose decks directly.",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Particle-Academy/fancy-slides.git"
@@ -49,8 +49,8 @@
     "@particle-academy/fancy-code": ">=0.4 <2.0",
     "@particle-academy/fancy-echarts": "^3.0.0 || ^4.0.0 || ^5.0.0",
     "@particle-academy/react-fancy": ">=3",
-    "react": "^18.0.0 || ^19.0.0",
-    "react-dom": "^18.0.0 || ^19.0.0"
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
   },
   "peerDependenciesMeta": {
     "@particle-academy/fancy-echarts": {
@@ -66,13 +66,13 @@
     "@particle-academy/react-fancy": "^4.0.0",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/react": "^16.3.2",
-    "@types/react": "^19.0.0",
-    "@types/react-dom": "^19.0.0",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
     "eslint": "^10.8.0",
     "eslint-plugin-react-hooks": "^7.1.1",
     "jsdom": "^25.0.1",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
     "tsup": "^8.5.0",
     "typescript": "^5.8.0",
     "typescript-eslint": "^8.65.0",
@@ -87,5 +87,8 @@
   ],
   "overrides": {
     "esbuild": "^0.28.1"
+  },
+  "engines": {
+    "node": ">=22"
   }
 }
