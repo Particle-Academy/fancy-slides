@@ -2,6 +2,24 @@
 
 ## [Unreleased]
 
+## [0.16.1] — 2026-08-07
+
+### Fixed
+
+- **The optional `fancy-echarts` peer excluded `fancy-echarts@6`.** The range
+  was `^3.0.0 || ^4.0.0 || ^5.0.0` — an enumerated caret list, which locks the
+  major. When `fancy-echarts` shipped 6.0.0 with the kit 0.5 floors, installing
+  the two together failed to resolve.
+
+  It is now `>=3`, matching how every other first-party sibling is declared
+  here. A caret on a sibling means each new sibling major reads to the resolver
+  as a **conflict** rather than an upgrade — and nothing reports it, because a
+  resolver quietly choosing an older version looks exactly like success.
+
+  **What you must do:** nothing. Widening only adds candidates, so whatever you
+  have installed still resolves.
+
+
 ## [0.16.0] — 2026-08-07
 
 ### Changed
