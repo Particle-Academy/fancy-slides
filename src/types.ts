@@ -239,7 +239,10 @@ export interface ShapeElement extends ElementBase {
     strokeWidth?: number;
     /** Dashed stroke. */
     dashed?: boolean;
-    /** Corner radius (px) for `rect` / `rounded-rect`. */
+    /**
+     * Corner radius for `rounded-rect`, in px at the slide's design width (default 8),
+     * capped at half the shorter side. A plain `rect` has square corners.
+     */
     radius?: number;
 }
 

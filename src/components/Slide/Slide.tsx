@@ -354,7 +354,7 @@ function SlideElementHost({
     };
 
     const rendered =
-        renderInner({ element, theme, slideWidthPx, editing, selected, onContentChange, paraReveal })
+        renderInner({ element, theme, slideWidthPx, slideHeightPx, editing, selected, onContentChange, paraReveal })
         ?? renderElement?.(element, slideWidthPx)
         ?? elementPlaceholder(element);
 
@@ -454,13 +454,14 @@ interface RenderInnerArgs {
     element: SlideElement;
     theme: Theme;
     slideWidthPx: number;
+    slideHeightPx: number;
     editing: boolean;
     selected: boolean;
     onContentChange?: (elementId: string, content: string) => void;
     paraReveal?: ParaReveal;
 }
 
-function renderInner({ element, theme, slideWidthPx, editing, selected, onContentChange, paraReveal }: RenderInnerArgs): ReactNode | undefined {
+function renderInner({ element, theme, slideWidthPx, slideHeightPx, editing, selected, onContentChange, paraReveal }: RenderInnerArgs): ReactNode | undefined {
     switch (element.type) {
         case "text":
             return (
@@ -477,7 +478,7 @@ function renderInner({ element, theme, slideWidthPx, editing, selected, onConten
         case "image":
             return <ImageElementRenderer element={element} />;
         case "shape":
-            return <ShapeElementRenderer element={element} theme={theme} slideWidthPx={slideWidthPx} />;
+            return <ShapeElementRenderer element={element} theme={theme} slideWidthPx={slideWidthPx} slideHeightPx={slideHeightPx} />;
         case "chart":
         case "code":
         case "table":

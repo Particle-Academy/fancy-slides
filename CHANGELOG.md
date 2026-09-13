@@ -2,6 +2,28 @@
 
 ## [Unreleased]
 
+## [0.16.2] — 2026-09-13
+
+### Fixed
+
+- **A `rounded-rect`'s `radius` is drawn in design pixels, as documented.** The
+  shape renders into a 0..100 viewBox stretched to its box, and the corner was
+  drawn as `rx = ry = radius` in those units, so `radius` was really a
+  PERCENTAGE of the box on each axis: `8` on a wide box drew a long, flat
+  elliptical corner, and the same value rounded differently on every box size.
+  The type said "px", and `@particle-academy/dark-slide` writes it to pptx as
+  pixels, so a deck rounded one way in the preview and another in PowerPoint.
+
+  It is now `radius` design pixels (default 8) on both axes, capped at half the
+  shorter side, which is where PowerPoint's `roundRect` stops. The type comment
+  no longer claims a plain `rect` takes a radius; it never did.
+
+  `ShapeElementRenderer` takes an optional `slideHeightPx` (the `Slide` passes
+  it); without one it uses `theme.aspectRatio`.
+
+  **Upgrade and check any rounded rectangle you tuned by eye:** its corners were
+  a share of the box and are now a fixed length.
+
 ## [0.16.1] — 2026-08-07
 
 ### Fixed
