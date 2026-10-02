@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- **`CHANGELOG.md` is now in the published tarball.** `files` did not whitelist it, so npm never shipped it — and this package puts breaking changes in MINOR releases and tells you in the README to read the entry before taking one. The instruction existed for the author, who has the file, and not for the consumer, who is the only one being instructed. Nothing for you to do; the file simply arrives from this release on.
+- Dropped `docs` from `files`: it was declared and never existed, so the package claimed to ship it and did not.
+
 ## [0.16.2] — 2026-09-13
 
 ### Fixed
