@@ -2,6 +2,54 @@
 
 ## [Unreleased]
 
+## [0.17.0] — 2026-10-07
+
+### Changed
+
+- **A table row given as an ARRAY is now read in COLUMN ORDER, so the shape an
+  author guesses renders instead of silently rendering nothing.**
+  `rows: [["Starter", "$49"]]` means `[{ plan: "Starter", price: "$49" }]` given
+  columns `[{ key: "plan" }, { key: "price" }]`.
+
+  `TableHost` read a cell as `row?.[c.key]`, so the contract was rows as OBJECTS
+  keyed by each column's `key` -- and nothing published said so. The natural guess
+  from a bare column list is a positional row, and that guess failed in the worst
+  available way: every cell `undefined`, every cell rendered blank, and the table
+  STILL DRAWN AT THE RIGHT SIZE, because the geometry comes from `columns` and
+  `rows.length` rather than from any cell. No exception, nothing in the console. It
+  reached a customer as "the table rows were empty" and read as a renderer bug
+  rather than a malformed deck -- and it is intermittent, because an agent author
+  lands on the keyed form some of the time.
+
+  **Nothing a consumer did stops working**: a keyed row is unchanged, and an array
+  row rendered a full-size grid of blank cells before. Surplus values past the last
+  column are dropped; columns past the last value stay empty, exactly as a missing
+  key does. Reported as #14 -- not #12, which was a CRASH on absent
+  `columns`/`rows`; here both are present and well-formed.
+
+  The matching rule ships in all three `dark-slide` writer engines (0.11.0 / 0.9.0 /
+  0.4.0, which also publish the item shape in the deck schema) and is pinned
+  cross-language by `fancy-conformance` 0.34.0 rows 0029–0033.
+
+- **A column with no `label` now shows its `key` in the header** rather than a blank
+  cell, which is how `dark-slide`'s writer has always resolved it and what its
+  published schema now states. `label` is optional on `TableColumn` accordingly.
+
+### Added
+
+- **`tableCells`, `tableRowsAsRecords` and `unreadableTableRows` are exported.** One
+  reading of a row, shared by the renderer, the inspector and any consumer drawing
+  its own table -- two readings is how a deck renders one way and edits another. The
+  inspector now reads rows through it, so editing a positionally-authored table
+  saves it back in the canonical keyed form instead of writing a cell the renderer
+  does not look at.
+
+- **A dev-time warning for the one shape no rule can rescue: an OBJECT row that
+  matches no column key** (a mis-cased or renamed key). It fails the same silent
+  way, full-size grid and every cell empty, and nothing can infer which column it
+  meant. Once per element, not once per render. `dark-slide`'s `Agent.validate()`
+  reports the same row on the writer side, where an agent can act on it.
+
 ### Fixed
 
 - **`CHANGELOG.md` is now in the published tarball.** `files` did not whitelist it, so npm never shipped it — and this package puts breaking changes in MINOR releases and tells you in the README to read the entry before taking one. The instruction existed for the author, who has the file, and not for the consumer, who is the only one being instructed. Nothing for you to do; the file simply arrives from this release on.

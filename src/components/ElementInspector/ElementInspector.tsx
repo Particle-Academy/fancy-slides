@@ -3,6 +3,7 @@ import { Button, Card, ColorPicker, Heading, Input, Select, Separator, Slider, S
 import type { ElementAnimation, Slide as SlideData, SlideBackground, SlideElement, SlideLayout, SlideTransition, TextElement, TextStyle, ImageElement, ShapeElement, CodeElement, ChartElement, TableElement, EmbedElement } from "../../types";
 import { chartModelFromOption, chartOptionFromModel, chartColorAt, type ChartKind, type ChartModel } from "../../utils/chart-presets";
 import { collectBuilds } from "../../utils/builds";
+import { tableRowsAsRecords } from "../../utils/table-rows";
 import { CodeInput } from "./CodeInput";
 
 export interface ElementInspectorProps {
@@ -949,7 +950,10 @@ function CartesianChartEditor({ model, onChange }: { model: ChartModel; onChange
 
 function TableStyleControls({ element, onPatch }: { element: TableElement; onPatch: (p: Partial<TableElement>) => void }) {
     const columns = element.columns;
-    const rows = element.rows;
+    // Through the SAME rule the renderer reads: a positional row edited by key
+    // would write the cell somewhere the renderer does not look. Editing a
+    // positionally-authored table saves it back in the canonical keyed form.
+    const rows = tableRowsAsRecords(element.rows, columns);
 
     /** Mint a column key that's unique among existing keys (col1, col2, …). */
     const nextColKey = (): string => {
@@ -999,7 +1003,7 @@ function TableStyleControls({ element, onPatch }: { element: TableElement; onPat
                 {columns.map((c, i) => (
                     <div key={c.key} className="flex items-center gap-2">
                         <div className="flex-1">
-                            <Input value={c.label} onChange={(e) => setColumnLabel(i, e.target.value)} aria-label={`Column ${i + 1} label`} />
+                            <Input value={c.label ?? c.key} onChange={(e) => setColumnLabel(i, e.target.value)} aria-label={`Column ${i + 1} label`} />
                         </div>
                         <Text size="xs" className="!font-mono !text-zinc-400">{c.key}</Text>
                         <Button size="xs" variant="ghost" color="red" icon="x" onClick={() => removeColumn(i)} aria-label="Remove column" />
@@ -1022,7 +1026,7 @@ function TableStyleControls({ element, onPatch }: { element: TableElement; onPat
                                     {columns.map((c) => (
                                         <Input
                                             key={c.key}
-                                            label={c.label}
+                                            label={c.label ?? c.key}
                                             value={r[c.key] == null ? "" : String(r[c.key])}
                                             onChange={(e) => setCell(rowIdx, c.key, e.target.value)}
                                         />

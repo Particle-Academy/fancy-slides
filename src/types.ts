@@ -218,12 +218,34 @@ export interface CodeElement extends ElementBase {
     codeTheme?: string;
 }
 
+/**
+ * One table column. `key` is what every row is keyed BY; `label` is what the
+ * header shows, and falls back to `key` when absent, as dark-slide’s writer
+ * resolves it.
+ */
+export interface TableColumn {
+    key: string;
+    label?: string;
+}
+
+/**
+ * One table row: an object keyed by each column’s `key`, or the values in COLUMN
+ * ORDER.
+ *
+ * The keyed form is canonical — it survives a column reorder, and it is the only
+ * one that can also carry row-level style for the pptx writer. The positional
+ * form is accepted because it is what an author guesses from a bare column list,
+ * and guessing it used to render a full-size grid with every cell blank and
+ * nothing logged (#14).
+ */
+export type TableRow = Record<string, unknown> | unknown[];
+
 export interface TableElement extends ElementBase {
     type: "table";
     /** Column definitions — `{ key, label }`. */
-    columns: Array<{ key: string; label: string }>;
-    /** Row data — array of objects keyed by column. */
-    rows: Array<Record<string, unknown>>;
+    columns: TableColumn[];
+    /** Row data — objects keyed by column `key`, or values in column order. */
+    rows: TableRow[];
 }
 
 export type ShapeKind = "rect" | "rounded-rect" | "ellipse" | "line" | "arrow" | "triangle";

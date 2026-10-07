@@ -1,5 +1,6 @@
 import { Table } from "@particle-academy/react-fancy";
-import type { TableElement } from "../../types";
+import type { TableColumn, TableElement, TableRow } from "../../types";
+import { tableCells, unreadableTableRows } from "../../utils/table-rows";
 
 /**
  * `columns` and `rows` are REQUIRED on `TableElement`, and are still read
@@ -22,12 +23,14 @@ import type { TableElement } from "../../types";
 export default function TableHost({ element }: { element: TableElement }) {
     // `?? []` rather than loosening the type: the contract still REQUIRES both,
     // and making them optional would push this same guard onto every consumer.
-    const columns = Array.isArray(element.columns) ? element.columns : [];
-    const rows = Array.isArray(element.rows) ? element.rows : [];
+    const columns: TableColumn[] = Array.isArray(element.columns) ? element.columns : [];
+    const rows: TableRow[] = Array.isArray(element.rows) ? element.rows : [];
 
     // With no columns there is nothing to draw. An empty <Table> renders a stray
     // border, which reads as a styling bug rather than as absent data.
     if (columns.length === 0) return null;
+
+    warnAboutUnreadableRows(element, columns, rows);
 
     return (
         <div style={{ width: "100%", height: "100%", overflow: "auto" }}>
@@ -36,23 +39,67 @@ export default function TableHost({ element }: { element: TableElement }) {
                     <Table.Row>
                         {columns.map((c) => (
                             <Table.Cell key={c.key} header>
-                                {c.label}
+                                {/* `label ?? key`, as dark-slide's writer resolves it and
+                                    as its published schema now states. A blank header
+                                    would make that description false for the renderer
+                                    half of the same deck model. */}
+                                {c.label ?? c.key}
                             </Table.Cell>
                         ))}
                     </Table.Row>
                 </Table.Head>
                 <Table.Body>
-                    {rows.map((row, i) => (
-                        <Table.Row key={i}>
-                            {columns.map((c) => (
-                                // A row can itself be null in hand-written JSON.
-                                <Table.Cell key={c.key}>{formatCell(row?.[c.key])}</Table.Cell>
-                            ))}
-                        </Table.Row>
-                    ))}
+                    {rows.map((row, i) => {
+                        const cells = tableCells(row, columns);
+                        return (
+                            <Table.Row key={i}>
+                                {columns.map((c) => (
+                                    <Table.Cell key={c.key}>{formatCell(cells[c.key])}</Table.Cell>
+                                ))}
+                            </Table.Row>
+                        );
+                    })}
                 </Table.Body>
             </Table>
         </div>
+    );
+}
+
+const warned = new WeakSet<object>();
+
+/**
+ * The one unreadable shape left: an OBJECT row that matches no column key.
+ *
+ * A positional row is now read by order and a partially-filled row is ordinary,
+ * so what remains is a row keyed by something no column reads — in practice a
+ * mis-cased or renamed key. No rule can rescue it (`{"Plan": …}` is a perfectly
+ * good object; nothing says which column it meant), and it fails the same silent
+ * way: full-size grid, every cell empty. So the renderer says so.
+ *
+ * Dev-only, and once per element rather than once per render — React renders the
+ * same element repeatedly, twice per commit under StrictMode, and a warning that
+ * repeats is a warning people filter out. `dark-slide`'s `Agent.validate()`
+ * reports the same row on the writer side, where an agent can act on it.
+ */
+function warnAboutUnreadableRows(element: TableElement, columns: TableColumn[], rows: TableRow[]): void {
+    // Read off globalThis rather than `process.env` directly: this package ships to
+    // browsers, where `process` may simply not exist and a bare reference throws.
+    // Where NODE_ENV is absent we warn, because a silent blank grid is the defect.
+    const env = (globalThis as { process?: { env?: Record<string, string | undefined> } }).process?.env;
+    if (env?.NODE_ENV === "production") return;
+    if (warned.has(element)) return;
+
+    const keys = columns.map((c) => c.key);
+    const unreadable = unreadableTableRows(rows, columns);
+
+    if (unreadable.length === 0) return;
+    warned.add(element);
+
+    console.warn(
+        `[fancy-slides] table "${element.id}": ${unreadable.length} of ${rows.length} rows match no column, ` +
+            `so their cells render empty at full table size. Key each cell by a column key ` +
+            `(${keys.join(", ")}), or give the row as a positional array in column order. ` +
+            `Got: ${JSON.stringify(unreadable[0])}`,
     );
 }
 

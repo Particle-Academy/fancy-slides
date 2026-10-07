@@ -63,6 +63,11 @@ export type { ShapeElementRendererProps } from "./components/elements/ShapeEleme
 export { useSlideKeyboard } from "./hooks/use-slide-keyboard";
 export type { SlideKeyboardOptions, SlideKeyboardApi, ShortcutHandler, KeymapEntry } from "./hooks/use-slide-keyboard";
 
+// One reading of a table row, shared by the renderer, the editor and any consumer
+// drawing its own table. Two readings is how a deck renders one way and edits
+// another (#14).
+export { tableCells, tableRowsAsRecords, unreadableTableRows } from "./utils/table-rows";
+
 export { useDeckState, reduce as reduceDeck } from "./hooks/use-deck-state";
 export type { UseDeckStateOptions, DeckStateApi, IdStrategy } from "./hooks/use-deck-state";
 
