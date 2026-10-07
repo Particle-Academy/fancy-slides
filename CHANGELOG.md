@@ -2,6 +2,24 @@
 
 ## [Unreleased]
 
+## [0.18.0] — 2026-10-07
+
+### Added
+
+- **A dev-time warning when a chart element's `option` declares nothing to plot.**
+  `option` goes to ECharts verbatim, and ECharts draws an EMPTY CANVAS at the full
+  size of the element for an option it cannot make a chart from -- no exception,
+  nothing in the console. The same silent shape as a table row matching no column
+  (#14): the surface renders, the data does not, and nothing says which.
+
+  Once per element rather than once per render, since React re-renders the same
+  element and a repeating warning is one people filter out. A `dataset` with no
+  explicit `series` is a legitimate ECharts shape and is NOT warned about.
+
+  The other half shipped in `dark-slide` 0.12.0 / 0.10.0 / 0.5.0, whose published
+  deck schema now describes the chart `option` surface -- including what an option
+  the pptx writer cannot translate becomes.
+
 ## [0.17.0] — 2026-10-07
 
 ### Changed
