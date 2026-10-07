@@ -7,6 +7,18 @@
 - **`CHANGELOG.md` is now in the published tarball.** `files` did not whitelist it, so npm never shipped it — and this package puts breaking changes in MINOR releases and tells you in the README to read the entry before taking one. The instruction existed for the author, who has the file, and not for the consumer, who is the only one being instructed. Nothing for you to do; the file simply arrives from this release on.
 - Dropped `docs` from `files`: it was declared and never existed, so the package claimed to ship it and did not.
 
+### Security
+
+- `source-map-js` is pinned forward to `^1.2.2` via `overrides`. Versions up to
+  1.2.1 allow an event-loop denial of service through indexed source-map section
+  offsets, and it arrives here transitively through the build toolchain.
+  **Nothing for a consumer to do, and no runtime change**: an npm package does
+  not ship a lockfile, so this governs builds OF this repo, not anything
+  installed FROM it. Recorded rather than left silent because the override it
+  sits beside — `shell-quote` `^1.9.0`, added for an earlier advisory — was
+  carried with no note of why, and had drifted back inside the vulnerable range
+  before anyone looked.
+
 ## [0.16.2] — 2026-09-13
 
 ### Fixed
