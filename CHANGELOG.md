@@ -2,6 +2,16 @@
 
 ## [Unreleased]
 
+## [0.20.2] — 2026-10-19
+
+### Fixed
+
+- **Every category label shows, and values sit above their bar**, as the
+  exported deck prints them. ECharts hid category labels it guessed would
+  collide (half the depots vanished from a four-bar chart) and put a bar's
+  value inside it. Defaults only: an axis or label that sets its own
+  `interval` or `position` keeps it.
+
 ## [0.20.1] — 2026-10-19
 
 ### Fixed

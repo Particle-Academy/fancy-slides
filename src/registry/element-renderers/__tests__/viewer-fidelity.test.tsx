@@ -61,6 +61,24 @@ describe("viewer fidelity", () => {
         await waitFor(() => expect(((received[received.length - 1] as { option?: { grid?: { top?: number } } }).option!.grid!.top)).toBe(80));
     });
 
+    it("shows every category and puts bar values above the bar, as the deck prints them", async () => {
+        const { slideChartOption } = await import("../chart-host");
+        const o = slideChartOption({
+            xAxis: { type: "category", data: ["Leeds", "Bristol", "Glasgow", "Norwich"] },
+            series: [{ type: "bar", label: { show: true }, data: [96.1, 95.4, 93.8, 90.7] }, { type: "line", label: { show: true }, data: [1, 2, 3, 4] }],
+        }) as { xAxis: { axisLabel: { interval: number } }; series: { label: { position?: string } }[] };
+        expect(o.xAxis.axisLabel.interval).toBe(0);
+        expect(o.series[0]!.label.position).toBe("top");
+        expect(o.series[1]!.label.position).toBe("top");
+
+        const own = slideChartOption({
+            xAxis: { type: "category", axisLabel: { interval: 1 }, data: ["A"] },
+            series: [{ type: "bar", label: { show: true, position: "inside" }, data: [1] }],
+        }) as { xAxis: { axisLabel: { interval: number } }; series: { label: { position?: string } }[] };
+        expect(own.xAxis.axisLabel.interval).toBe(1);
+        expect(own.series[0]!.label.position).toBe("inside");
+    });
+
     it("gives every theme face a generic fallback, quoting names with spaces", () => {
         expect(fontStack("Poppins")).toBe("Poppins, ui-sans-serif, system-ui, sans-serif");
         expect(fontStack("Playfair Display")).toBe('"Playfair Display", ui-sans-serif, system-ui, sans-serif');

@@ -73,9 +73,28 @@ export function slideChartOption(option: unknown): unknown {
     if (typeof option !== "object" || option === null || Array.isArray(option)) return option;
     const o = option as Record<string, unknown>;
     const legend = o.legend !== undefined && o.legend !== null && (o.legend as { show?: unknown }).show !== false;
+    const isObj = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);
+
+    // Every category label, as PowerPoint shows them; ECharts hides the ones it
+    // guesses will collide, which dropped half the depots from a four-bar chart.
+    const xAxis = isObj(o.xAxis) && (o.xAxis.type ?? "category") === "category"
+        ? { ...o.xAxis, axisLabel: { interval: 0, ...(isObj(o.xAxis.axisLabel) ? o.xAxis.axisLabel : {}) } }
+        : o.xAxis;
+
+    // Values printed ABOVE a bar or point, as the deck writes them (outEnd / t);
+    // ECharts' default puts a bar's value inside it.
+    const series = Array.isArray(o.series)
+        ? o.series.map((s) => {
+              if (!isObj(s) || !isObj(s.label) || s.label.show !== true || s.label.position !== undefined) return s;
+              return s.type === "bar" || s.type === "line" ? { ...s, label: { ...s.label, position: "top" } } : s;
+          })
+        : o.series;
+
     return {
         backgroundColor: "transparent",
         ...o,
+        ...(xAxis === undefined ? {} : { xAxis }),
+        ...(series === undefined ? {} : { series }),
         grid: o.grid ?? { top: o.title ? 32 : 12, right: 12, bottom: legend ? 28 : 8, left: 8, containLabel: true },
     };
 }
