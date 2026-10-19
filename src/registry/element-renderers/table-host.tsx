@@ -1,3 +1,4 @@
+import { fontStack } from "../../utils/font-stack";
 import type { CSSProperties } from "react";
 import { Table } from "@particle-academy/react-fancy";
 import type { TableColumn, TableElement, TableRow } from "../../types";
@@ -54,7 +55,7 @@ export default function TableHost({ element }: { element: TableElement }) {
                         <Table.Row>
                             {columns.map((c, i) => (
                                 // `label ?? key`, as dark-slide's writer resolves it.
-                                <Table.Cell key={c.key} header style={cellCss(resolveCell(element, theme, c, null, { header: true }), scale, widths[i])}>
+                                <Table.Cell key={c.key} header style={cellCss(resolveCell(element, theme, c, null, { header: true }), scale, widths[i], theme?.fonts?.body)}>
                                     {c.label ?? c.key}
                                 </Table.Cell>
                             ))}
@@ -69,7 +70,7 @@ export default function TableHost({ element }: { element: TableElement }) {
                                 {columns.map((c, i) => {
                                     const look = resolveCell(element, theme, c, cells[c.key], { header: false, bodyIndex: r, row: Array.isArray(row) ? undefined : row });
                                     return (
-                                        <Table.Cell key={c.key} style={cellCss(look, scale, hasHeader ? undefined : widths[i])}>
+                                        <Table.Cell key={c.key} style={cellCss(look, scale, hasHeader ? undefined : widths[i], theme?.fonts?.body)}>
                                             {look.text}
                                         </Table.Cell>
                                     );
@@ -100,7 +101,7 @@ function columnWidths(columns: TableColumn[]): (string | undefined)[] {
     return filled.map((w) => `${((w / total) * 100).toFixed(3)}%`);
 }
 
-function cellCss(look: CellLook, scale: number, width?: string): CSSProperties {
+function cellCss(look: CellLook, scale: number, width?: string, bodyFont?: string): CSSProperties {
     const border = look.border === null ? "none" : `${Math.max(1, look.borderWidth * scale)}px solid ${look.border}`;
     return {
         backgroundColor: look.fill ?? "transparent",
@@ -112,7 +113,7 @@ function cellCss(look: CellLook, scale: number, width?: string): CSSProperties {
         verticalAlign: look.anchor,
         fontSize: `${look.fontSize * scale}px`,
         lineHeight: 1.25,
-        fontFamily: look.fontFamily ?? undefined,
+        fontFamily: fontStack(look.fontFamily ?? bodyFont),
         // PowerPoint's default cell insets: 7.2pt / 3.6pt = 19.2 / 9.6 design px.
         padding: `${9.6 * scale}px ${19.2 * scale}px`,
         border,

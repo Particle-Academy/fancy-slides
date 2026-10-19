@@ -1,3 +1,4 @@
+import { fontStack } from "../../utils/font-stack";
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import type { Deck, SlideElement, SlideTransition } from "../../types";
 import { resolveTheme } from "../../theme/theme-utils";
@@ -200,7 +201,7 @@ export function SlideViewer({
                         background: "rgba(15, 23, 42, 0.6)",
                         color: "#f8fafc",
                         fontSize: 12,
-                        fontFamily: theme.fonts?.mono,
+                        fontFamily: fontStack(theme.fonts?.mono, "mono"),
                         backdropFilter: "blur(6px)",
                     }}
                     aria-label="Slide counter"

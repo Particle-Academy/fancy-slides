@@ -23,7 +23,7 @@ const ChartInner: ComponentType<InnerProps> = lazy(async () => {
     try {
         const mod: Record<string, unknown> = await import("@particle-academy/fancy-echarts");
         const EChart = mod.EChart as
-            | ComponentType<{ option: unknown; theme?: string }>
+            | ComponentType<{ option: unknown; theme?: string; style?: Record<string, string> }>
             | undefined;
         if (!EChart) {
             return { default: () => <PeerMissing label="Chart" install="npm i @particle-academy/fancy-echarts" /> };
@@ -37,7 +37,9 @@ const ChartInner: ComponentType<InnerProps> = lazy(async () => {
         return {
             default: ({ option, theme }: InnerProps) => (
                 <div style={{ width: "100%", height: "100%" }}>
-                    <EChart option={option} theme={theme} />
+                    {/* Fill the frame: fancy-echarts defaults to 400px tall, which ran
+                        every chart out of a smaller frame and cut its axis. */}
+                    <EChart option={option} theme={theme} style={{ width: "100%", height: "100%" }} />
                 </div>
             ),
         };

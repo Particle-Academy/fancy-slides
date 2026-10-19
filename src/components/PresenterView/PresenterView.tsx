@@ -1,3 +1,4 @@
+import { fontStack } from "../../utils/font-stack";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { Deck, SlideElement } from "../../types";
 import { resolveTheme } from "../../theme/theme-utils";
@@ -126,7 +127,7 @@ export function PresenterView({
                 height: "100%",
                 background: "#0b1220",
                 color: "#f8fafc",
-                fontFamily: theme.fonts?.body,
+                fontFamily: fontStack(theme.fonts?.body),
             }}
             data-fancy-slides-presenter={deck.id}
         >
@@ -213,7 +214,7 @@ export function PresenterView({
                             border: "1px solid rgba(255,255,255,0.08)",
                             borderRadius: 6,
                             padding: 12,
-                            fontFamily: theme.fonts?.body,
+                            fontFamily: fontStack(theme.fonts?.body),
                             fontSize: 15,
                             lineHeight: 1.5,
                             whiteSpace: "pre-wrap",
@@ -243,7 +244,7 @@ export function PresenterView({
                     borderTop: "1px solid rgba(255,255,255,0.1)",
                     fontSize: 13,
                     color: "rgba(248,250,252,0.7)",
-                    fontFamily: theme.fonts?.mono,
+                    fontFamily: fontStack(theme.fonts?.mono, "mono"),
                 }}
             >
                 <StatusChip label="Slide">

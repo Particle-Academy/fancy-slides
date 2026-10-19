@@ -2,6 +2,25 @@
 
 ## [Unreleased]
 
+## [0.20.0] — 2026-10-19
+
+### Changed
+
+- **Text is set at PowerPoint's single spacing (1.2) and runs past its box**,
+  as it does in PowerPoint and LibreOffice. It stood at 1.4 and was clipped at
+  its box, so the viewer drew every text box taller than the exported deck and
+  hid lines the file shows. **What to do:** nothing, unless a deck depended on
+  the taller default; set `style.lineHeight: 1.4` on those text elements.
+- **Theme faces get a generic fallback** (`fontStack()`): a face the browser
+  does not have fell back to its default SERIF, so a Poppins or Inter deck drew
+  its titles in Times. Now it falls back to the system sans (monospace for
+  code), as PowerPoint and LibreOffice substitute.
+
+### Fixed
+
+- **A chart fills its frame.** fancy-echarts' 400px default height won, so
+  every chart ran out of a smaller frame and its axis was cut off.
+
 ## [0.19.0] — 2026-10-19
 
 ### Added

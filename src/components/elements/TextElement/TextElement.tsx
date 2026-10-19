@@ -1,3 +1,4 @@
+import { fontStack } from "../../../utils/font-stack";
 import { useId, type CSSProperties } from "react";
 import { ContentRenderer, Editor } from "@particle-academy/react-fancy";
 import type { TextElement, Theme } from "../../../types";
@@ -62,14 +63,16 @@ export function TextElementRenderer({
     const scopeId = useId();
 
     const css: CSSProperties = {
-        fontFamily: style.fontFamily ?? t.fonts?.body,
+        fontFamily: fontStack(style.fontFamily ?? t.fonts?.body),
         fontSize: `${(style.fontSize ?? 28) * scale}px`,
         fontWeight: weight(style.weight) ?? 400,
         fontStyle: style.italic ? "italic" : "normal",
         textDecoration: style.underline ? "underline" : "none",
         color: style.color ?? t.colors?.text,
         textAlign: style.align ?? "left",
-        lineHeight: style.lineHeight ?? 1.4,
+        // PowerPoint's single spacing (~1.2), which is what dark-slide writes
+        // when no lineHeight is set. 1.4 drew every box taller than it prints.
+        lineHeight: style.lineHeight ?? 1.2,
         display: "flex",
         flexDirection: "column",
         justifyContent:
@@ -82,7 +85,9 @@ export function TextElementRenderer({
         background: "transparent",
         whiteSpace: format === "plain" ? "pre-wrap" : "normal",
         wordBreak: "break-word",
-        overflow: "hidden",
+        // Text runs past its box, as it does in PowerPoint and LibreOffice.
+        // Clipping it hid lines the exported file shows.
+        overflow: "visible",
     };
 
     // Edit mode is gated by selection: an unselected element in the editor
@@ -97,7 +102,7 @@ export function TextElementRenderer({
     // element's scaled typography so editing looks like the live slide.
     if (editing && selected) {
         const fontPx = Math.round((style.fontSize ?? 28) * scale);
-        const lh = style.lineHeight ?? 1.4;
+        const lh = style.lineHeight ?? 1.2;
         const editScope = scopeId;
         return (
             <div
@@ -109,7 +114,7 @@ export function TextElementRenderer({
                     cursor: "text",
                     textAlign: style.align ?? "left",
                     color: style.color ?? t.colors?.text,
-                    fontFamily: style.fontFamily ?? t.fonts?.body,
+                    fontFamily: fontStack(style.fontFamily ?? t.fonts?.body),
                 }}
                 // Keep editing interactions (toolbar clicks, text selection) from
                 // bubbling to the Slide's element drag / deselect handlers.
