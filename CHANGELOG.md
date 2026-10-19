@@ -2,6 +2,15 @@
 
 ## [Unreleased]
 
+## [0.21.1] — 2026-10-19
+
+### Fixed
+
+- **A slide fits its viewer's box, height included.** It fitted the box's width
+  and the WINDOW's height (`100vh`), so in a wide, short viewer (a docs example,
+  a card) the slide ran out of the bottom and showed as a blank strip. It now
+  fits whichever of the box's width or height runs out first.
+
 ## [0.21.0] — 2026-10-19
 
 ### Added

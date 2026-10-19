@@ -56,6 +56,19 @@ describe("SlideViewer frame", () => {
         expect(scroller.querySelector('[aria-label="Slide counter"]')).toBeNull();
     });
 
+    it("fits the slide to its OWN box, not the window", () => {
+        // In a wide, short box the slide took the box's width and the window's
+        // height, ran out of the bottom, and the docs example showed a blank
+        // strip of it. jsdom does no layout, so this pins the rule the browser
+        // check measured: a size container, and a width bounded by its height.
+        const { container } = render(<SlideViewer deck={deck} />);
+        const scroller = container.querySelector("[data-fancy-slides-scroller]") as HTMLElement;
+        const box = container.querySelector("[data-fancy-slides-slide-box]") as HTMLElement;
+        expect(scroller.getAttribute("style")).toContain("container-type: size");
+        expect(box.getAttribute("style")).toContain("100cqh");
+        expect(box.getAttribute("style")).not.toContain("100vh");
+    });
+
     it("can go without the frame", () => {
         const { container } = render(<SlideViewer deck={deck} frame={false} />);
         expect(container.querySelector("[data-react-fancy-faux-client]")).toBeNull();

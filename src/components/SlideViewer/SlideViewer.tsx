@@ -211,6 +211,9 @@ export function SlideViewer({
                         inset: 0,
                         display: "flex",
                         overflow: zoom > 1 ? "auto" : "hidden",
+                        // A size container, so the slide can fit THIS box's
+                        // height (cqh) rather than the window's (vh).
+                        containerType: "size",
                     }}
                 >
                 <div
@@ -220,8 +223,8 @@ export function SlideViewer({
                         // times the frame's zoom. `margin: auto` centres it while
                         // it fits and lets it scroll from its edge once it does not.
                         width: zoom === 1
-                            ? "min(100%, calc(100vh * var(--fs-ratio)))"
-                            : `calc(min(100%, calc(100vh * var(--fs-ratio))) * ${zoom})`,
+                            ? "min(100cqw, calc(100cqh * var(--fs-ratio)))"
+                            : `calc(min(100cqw, calc(100cqh * var(--fs-ratio))) * ${zoom})`,
                         flexShrink: 0,
                         margin: "auto",
                         aspectRatio: String(aspectRatio),
