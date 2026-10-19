@@ -1,5 +1,6 @@
 import { fontStack } from "../../utils/font-stack";
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { FauxClient, type FauxClientProps } from "@particle-academy/react-fancy";
 import type { Deck, SlideElement, SlideTransition } from "../../types";
 import { resolveTheme } from "../../theme/theme-utils";
 import { Slide } from "../Slide";
@@ -32,6 +33,14 @@ export interface SlideViewerProps {
     renderElement?: (element: SlideElement, slideWidthPx: number) => ReactNode | undefined;
     /** Extra classes on the viewer wrapper. */
     className?: string;
+    /**
+     * Show the deck in react-fancy's `FauxClient` frame: a device bezel with a
+     * zoom bar and a full-screen button, out of sight until the frame is
+     * hovered. Default `true`; `false` for the bare viewer, as before 0.21.
+     */
+    frame?: boolean;
+    /** Passed to the frame: `variant`, `zoom` / `onZoomChange`, `onFullscreenChange`, … */
+    frameProps?: Partial<FauxClientProps>;
 }
 
 /**
@@ -50,6 +59,8 @@ export function SlideViewer({
     hideChrome = false,
     renderElement = defaultElementRegistry,
     className,
+    frame = true,
+    frameProps,
 }: SlideViewerProps) {
     const isControlled = controlledIndex !== undefined;
     const [internalIndex, setInternalIndex] = useState(defaultIndex ?? 0);
@@ -66,6 +77,18 @@ export function SlideViewer({
 
     const [blanked, setBlanked] = useState(false);
     const containerRef = useRef<HTMLDivElement>(null);
+    const frameRef = useRef<HTMLDivElement>(null);
+    // The frame shows the zoom controls; the SLIDE does the zooming, because a
+    // viewer that fits itself to its box only re-fits under a scaled frame.
+    const [ownZoom, setOwnZoom] = useState(frameProps?.defaultZoom ?? 1);
+    const zoom = frame ? (frameProps?.zoom ?? ownZoom) : 1;
+    const onZoomChange = useCallback(
+        (z: number) => {
+            setOwnZoom(z);
+            frameProps?.onZoomChange?.(z);
+        },
+        [frameProps],
+    );
 
     // Track nav direction so `slide` transitions default sensibly: advancing
     // forward enters from the right, going back enters from the left.
@@ -117,7 +140,9 @@ export function SlideViewer({
         onExit,
         onBlank: () => setBlanked((b) => !b),
         onFullscreen: () => {
-            const el = containerRef.current;
+            // The frame, not the viewer: full screen keeps the zoom bar and the
+            // exit button, and the frame's own button stays in step with it.
+            const el = frame ? frameRef.current : containerRef.current;
             if (!el) return;
             if (document.fullscreenElement) document.exitFullscreen();
             else el.requestFullscreen?.();
@@ -144,7 +169,7 @@ export function SlideViewer({
     const transition: SlideTransition | undefined = slide?.transition ?? theme.defaultTransition;
     const enterStyle = transitionEnterStyle(transition, forward);
 
-    return (
+    const viewer = (
         <div
             ref={containerRef}
             className={cn("fs-viewer", className)}
@@ -161,9 +186,13 @@ export function SlideViewer({
             tabIndex={0}
             data-fancy-slides-viewer={deck.id}
             data-fancy-slides-build-step={buildStep}
-            onClick={() => {
+            onClick={(e) => {
                 if (blanked) return;
-                advance();
+                // Click zones: the left third goes back, the rest goes forward,
+                // as in a book. A click anywhere used to go forward only.
+                const box = e.currentTarget.getBoundingClientRect();
+                if (box.width > 0 && e.clientX - box.left < box.width / 3) retreat();
+                else advance();
             }}
         >
             {/* Keyframes for slide entrance transitions. Pure CSS — no runtime deps.
@@ -172,10 +201,29 @@ export function SlideViewer({
             <style>{TRANSITION_KEYFRAMES}</style>
 
             {!blanked && slide && (
+                // What scrolls when the slide is zoomed past the frame. The
+                // counter and the previous / next buttons sit outside it, so they
+                // stay where they are.
                 <div
+                    data-fancy-slides-scroller=""
                     style={{
-                        // Box that fits the slide while preserving aspect ratio.
-                        width: "min(100%, calc(100vh * var(--fs-ratio)))",
+                        position: "absolute",
+                        inset: 0,
+                        display: "flex",
+                        overflow: zoom > 1 ? "auto" : "hidden",
+                    }}
+                >
+                <div
+                    data-fancy-slides-slide-box=""
+                    style={{
+                        // Box that fits the slide while preserving aspect ratio,
+                        // times the frame's zoom. `margin: auto` centres it while
+                        // it fits and lets it scroll from its edge once it does not.
+                        width: zoom === 1
+                            ? "min(100%, calc(100vh * var(--fs-ratio)))"
+                            : `calc(min(100%, calc(100vh * var(--fs-ratio))) * ${zoom})`,
+                        flexShrink: 0,
+                        margin: "auto",
                         aspectRatio: String(aspectRatio),
                         // CSS var lets us inline-style the aspect ratio so it works in any container.
                         ["--fs-ratio" as keyof React.CSSProperties as string]: aspectRatio.toString(),
@@ -188,6 +236,40 @@ export function SlideViewer({
                         <Slide slide={slide} theme={theme} buildStep={buildStep} renderElement={renderElement} />
                     </div>
                 </div>
+                </div>
+            )}
+
+            {!blanked && index > 0 && (
+                <button
+                    type="button"
+                    className="fs-nav"
+                    data-fancy-slides-prev=""
+                    aria-label="Previous slide"
+                    title="Previous slide"
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        retreat();
+                    }}
+                    style={{ ...NAV_BUTTON, left: 12 }}
+                >
+                    <Chevron direction="left" />
+                </button>
+            )}
+            {!blanked && (index < deck.slides.length - 1 || buildStep < totalSteps) && (
+                <button
+                    type="button"
+                    className="fs-nav"
+                    data-fancy-slides-next=""
+                    aria-label="Next slide"
+                    title="Next slide"
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        advance();
+                    }}
+                    style={{ ...NAV_BUTTON, right: 12 }}
+                >
+                    <Chevron direction="right" />
+                </button>
             )}
 
             {!hideChrome && !blanked && (
@@ -210,6 +292,51 @@ export function SlideViewer({
                 </div>
             )}
         </div>
+    );
+
+    if (!frame) return viewer;
+
+    return (
+        <FauxClient
+            ref={frameRef}
+            variant="device"
+            fill
+            controls
+            {...frameProps}
+            zoom={zoom}
+            onZoomChange={onZoomChange}
+            applyZoom={false}
+            className={cn("fs-viewer-frame", frameProps?.className)}
+        >
+            {viewer}
+        </FauxClient>
+    );
+}
+
+/** The previous / next buttons: hidden until the viewer is hovered, like the frame's controls. */
+const NAV_BUTTON: React.CSSProperties = {
+    position: "absolute",
+    top: "50%",
+    transform: "translateY(-50%)",
+    width: 36,
+    height: 36,
+    borderRadius: 999,
+    border: "none",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    background: "rgba(15, 23, 42, 0.55)",
+    color: "#f8fafc",
+    cursor: "pointer",
+    backdropFilter: "blur(6px)",
+    zIndex: 2,
+};
+
+function Chevron({ direction }: { direction: "left" | "right" }) {
+    return (
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d={direction === "left" ? "m15 18-6-6 6-6" : "m9 18 6-6-6-6"} />
+        </svg>
     );
 }
 
@@ -293,4 +420,8 @@ const TRANSITION_KEYFRAMES = `
         to { opacity: 1; transform: translateY(0); }
     }
 }
+.fs-viewer .fs-nav { opacity: 0; transition: opacity 150ms ease; }
+.fs-viewer:hover .fs-nav, .fs-viewer .fs-nav:focus-visible { opacity: 1; }
+.fs-viewer .fs-nav:hover { background: rgba(15, 23, 42, 0.75) !important; }
+@media (hover: none) { .fs-viewer .fs-nav { opacity: 1; } }
 `;

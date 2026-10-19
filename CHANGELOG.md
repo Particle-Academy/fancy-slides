@@ -2,6 +2,32 @@
 
 ## [Unreleased]
 
+## [0.21.0] — 2026-10-19
+
+### Added
+
+- **Click zones**: in `SlideViewer` a click on the left third of the slide goes
+  back and a click anywhere else goes forward, as in a book. It used to go
+  forward only, wherever you clicked. Previous and next buttons sit at the
+  edges, hidden until the viewer is hovered (always shown on touch screens),
+  with `data-fancy-slides-prev` / `data-fancy-slides-next` handles.
+
+### Changed
+
+- **BREAKING (look, not API): `SlideViewer` shows the deck in react-fancy's
+  `FauxClient` device frame**, with a zoom bar and a full-screen button that
+  stay out of sight until the frame is hovered. A slide shrunk to fit a panel
+  could not be read and there was no way to look closer. `F` now puts the frame
+  in full screen, so the controls come with it. `frameProps` reaches the frame
+  (`variant`, a controlled `zoom`, `onFullscreenChange`). Zoom magnifies the
+  slide itself and scrolls it inside the frame; the counter and the previous /
+  next buttons stay where they are.
+  **What to do:** nothing if you want the frame. To keep the bare viewer, pass
+  `frame={false}`.
+- **Requires react-fancy 5.47.0 or later** (peer `>=5.47.0 <6.0.0`, was `>=3`),
+  for the frame. Every react-fancy 5.x consumer only needs to be on a current
+  5.x.
+
 ## [0.20.2] — 2026-10-19
 
 ### Fixed
