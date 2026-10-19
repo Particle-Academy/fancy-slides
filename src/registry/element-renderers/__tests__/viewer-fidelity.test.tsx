@@ -19,9 +19,9 @@ import type { ChartElement, TextElement as TextElementType } from "../../../type
  *    a takeaway vanished here and printed there.
  */
 
-const received: { style?: Record<string, unknown> }[] = [];
+const received: { style?: Record<string, unknown>; option?: unknown }[] = [];
 vi.mock("@particle-academy/fancy-echarts", () => ({
-    EChart: (props: { style?: Record<string, unknown> }) => {
+    EChart: (props: { style?: Record<string, unknown>; option?: unknown }) => {
         received.push(props);
         return <div data-testid="echart" />;
     },
@@ -39,6 +39,26 @@ describe("viewer fidelity", () => {
         render(<ChartHost element={element} slideWidthPx={960} />);
         await waitFor(() => expect(received.length).toBeGreaterThan(0));
         expect(received[received.length - 1]!.style).toMatchObject({ width: "100%", height: "100%" });
+    });
+
+    it("lays a chart out as a slide chart: tight grid, labels contained, slide showing through", async () => {
+        const { default: ChartHost } = await import("../chart-host");
+        const element = {
+            id: "c", type: "chart", x: 0, y: 0, w: 0.5, h: 0.3,
+            option: { xAxis: { data: ["A"] }, series: [{ type: "bar", data: [1] }] },
+        } as ChartElement;
+        render(<ChartHost element={element} slideWidthPx={960} />);
+        await waitFor(() => expect(received.length).toBeGreaterThan(0));
+        const option = (received[received.length - 1] as { option?: Record<string, unknown> }).option!;
+        // ECharts' own default grid keeps ~60px top and bottom: a 160px frame
+        // was left a 40px plot with its axis labels piled on each other.
+        expect(option.grid).toMatchObject({ containLabel: true });
+        expect((option.grid as { top: number }).top).toBeLessThan(40);
+        expect(option.backgroundColor).toBe("transparent");
+
+        // The author's own layout wins.
+        render(<ChartHost element={{ ...element, option: { ...element.option, grid: { top: 80 }, backgroundColor: "#111" } }} slideWidthPx={960} />);
+        await waitFor(() => expect(((received[received.length - 1] as { option?: { grid?: { top?: number } } }).option!.grid!.top)).toBe(80));
     });
 
     it("gives every theme face a generic fallback, quoting names with spaces", () => {

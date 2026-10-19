@@ -2,6 +2,18 @@
 
 ## [Unreleased]
 
+## [0.20.1] — 2026-10-19
+
+### Fixed
+
+- **A chart lays out as a slide chart.** ECharts' default grid keeps about 60px
+  above and below the plot, so a chart in a small frame was left a sliver of
+  plot with its axis labels piled on each other; and the dark theme painted its
+  own background where PowerPoint shows the slide. A chart now defaults to a
+  tight grid that contains its labels (room kept for a title or legend) and a
+  transparent background. **What to do: nothing**; an option that sets `grid`
+  or `backgroundColor` keeps its own.
+
 ## [0.20.0] — 2026-10-19
 
 ### Changed

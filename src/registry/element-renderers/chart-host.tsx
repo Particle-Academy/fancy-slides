@@ -57,9 +57,27 @@ export default function ChartHost({ element }: { element: ChartElement; slideWid
     warnAboutUnplottableOption(element);
     return (
         <Suspense fallback={null}>
-            <ChartInner option={element.option} theme={theme} />
+            <ChartInner option={slideChartOption(element.option)} theme={theme} />
         </Suspense>
     );
+}
+
+/**
+ * The option as a slide chart lays out: ECharts' defaults are for a page, not
+ * a frame on a slide. Its default grid keeps ~60px above and below the plot, so
+ * a 160px frame was left a 40px plot with its axis labels piled up; and its
+ * dark theme paints its own background where PowerPoint shows the slide. Both
+ * are DEFAULTS only: an option that sets `grid` or `backgroundColor` keeps it.
+ */
+export function slideChartOption(option: unknown): unknown {
+    if (typeof option !== "object" || option === null || Array.isArray(option)) return option;
+    const o = option as Record<string, unknown>;
+    const legend = o.legend !== undefined && o.legend !== null && (o.legend as { show?: unknown }).show !== false;
+    return {
+        backgroundColor: "transparent",
+        ...o,
+        grid: o.grid ?? { top: o.title ? 32 : 12, right: 12, bottom: legend ? 28 : 8, left: 8, containLabel: true },
+    };
 }
 
 const warned = new WeakSet<object>();
