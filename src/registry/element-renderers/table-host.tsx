@@ -1,6 +1,9 @@
+import type { CSSProperties } from "react";
 import { Table } from "@particle-academy/react-fancy";
 import type { TableColumn, TableElement, TableRow } from "../../types";
 import { tableCells, unreadableTableRows } from "../../utils/table-rows";
+import { resolveCell, type CellLook } from "../../utils/table-style";
+import { useSlideContext } from "../../components/Slide/slide-context";
 
 /**
  * `columns` and `rows` are REQUIRED on `TableElement`, and are still read
@@ -23,6 +26,8 @@ import { tableCells, unreadableTableRows } from "../../utils/table-rows";
 export default function TableHost({ element }: { element: TableElement }) {
     // `?? []` rather than loosening the type: the contract still REQUIRES both,
     // and making them optional would push this same guard onto every consumer.
+    const context = useSlideContext();
+    const theme = context?.theme;
     const columns: TableColumn[] = Array.isArray(element.columns) ? element.columns : [];
     const rows: TableRow[] = Array.isArray(element.rows) ? element.rows : [];
 
@@ -32,30 +37,43 @@ export default function TableHost({ element }: { element: TableElement }) {
 
     warnAboutUnreadableRows(element, columns, rows);
 
+    const style = (element as { style?: Record<string, unknown> }).style;
+    const hasHeader = style?.header !== false;
+    // Sizes are design px on the deck canvas, scaled to the rendered slide the
+    // way text is. Outside a Slide there is nothing to scale against.
+    const scale = context ? context.slideWidthPx / (context.theme.slideWidth ?? 1920) : 1;
+    const widths = columnWidths(columns);
+
     return (
-        <div style={{ width: "100%", height: "100%", overflow: "auto" }}>
+        // Fits its frame; never a scroll box. A scroll box clipped the last row
+        // behind a scrollbar on a slide, which has no way to scroll.
+        <div style={{ width: "100%", height: "100%", overflow: "hidden" }}>
             <Table className="w-full">
-                <Table.Head>
-                    <Table.Row>
-                        {columns.map((c) => (
-                            <Table.Cell key={c.key} header>
-                                {/* `label ?? key`, as dark-slide's writer resolves it and
-                                    as its published schema now states. A blank header
-                                    would make that description false for the renderer
-                                    half of the same deck model. */}
-                                {c.label ?? c.key}
-                            </Table.Cell>
-                        ))}
-                    </Table.Row>
-                </Table.Head>
+                {hasHeader && (
+                    <Table.Head>
+                        <Table.Row>
+                            {columns.map((c, i) => (
+                                // `label ?? key`, as dark-slide's writer resolves it.
+                                <Table.Cell key={c.key} header style={cellCss(resolveCell(element, theme, c, null, { header: true }), scale, widths[i])}>
+                                    {c.label ?? c.key}
+                                </Table.Cell>
+                            ))}
+                        </Table.Row>
+                    </Table.Head>
+                )}
                 <Table.Body>
-                    {rows.map((row, i) => {
+                    {rows.map((row, r) => {
                         const cells = tableCells(row, columns);
                         return (
-                            <Table.Row key={i}>
-                                {columns.map((c) => (
-                                    <Table.Cell key={c.key}>{formatCell(cells[c.key])}</Table.Cell>
-                                ))}
+                            <Table.Row key={r}>
+                                {columns.map((c, i) => {
+                                    const look = resolveCell(element, theme, c, cells[c.key], { header: false, bodyIndex: r, row: Array.isArray(row) ? undefined : row });
+                                    return (
+                                        <Table.Cell key={c.key} style={cellCss(look, scale, hasHeader ? undefined : widths[i])}>
+                                            {look.text}
+                                        </Table.Cell>
+                                    );
+                                })}
                             </Table.Row>
                         );
                     })}
@@ -63,6 +81,43 @@ export default function TableHost({ element }: { element: TableElement }) {
             </Table>
         </div>
     );
+}
+
+/** Column widths as percentages: fractions (all <= 1) or weights, as dark-slide reads them. */
+function columnWidths(columns: TableColumn[]): (string | undefined)[] {
+    const raw = columns.map((c) => (typeof (c as { width?: unknown }).width === "number" ? ((c as { width?: number }).width as number) : null));
+    if (raw.every((w) => w === null)) return columns.map(() => undefined);
+    const fractions = raw.every((w) => w === null || w <= 1);
+    const declared = raw.filter((w): w is number => w !== null);
+    const filled = fractions
+        ? (() => {
+              const rest = Math.max(0, 1 - declared.reduce((a, b) => a + b, 0));
+              const open = raw.filter((w) => w === null).length;
+              return raw.map((w) => w ?? (open > 0 ? rest / open : 0));
+          })()
+        : raw.map((w) => w ?? 1);
+    const total = filled.reduce((a, b) => a + b, 0) || 1;
+    return filled.map((w) => `${((w / total) * 100).toFixed(3)}%`);
+}
+
+function cellCss(look: CellLook, scale: number, width?: string): CSSProperties {
+    const border = look.border === null ? "none" : `${Math.max(1, look.borderWidth * scale)}px solid ${look.border}`;
+    return {
+        backgroundColor: look.fill ?? "transparent",
+        color: look.color,
+        fontWeight: look.bold ? 700 : 400,
+        fontStyle: look.italic ? "italic" : "normal",
+        textDecoration: look.underline ? "underline" : undefined,
+        textAlign: look.align,
+        verticalAlign: look.anchor,
+        fontSize: `${look.fontSize * scale}px`,
+        lineHeight: 1.25,
+        fontFamily: look.fontFamily ?? undefined,
+        // PowerPoint's default cell insets: 7.2pt / 3.6pt = 19.2 / 9.6 design px.
+        padding: `${9.6 * scale}px ${19.2 * scale}px`,
+        border,
+        width,
+    };
 }
 
 const warned = new WeakSet<object>();
@@ -101,10 +156,4 @@ function warnAboutUnreadableRows(element: TableElement, columns: TableColumn[], 
             `(${keys.join(", ")}), or give the row as a positional array in column order. ` +
             `Got: ${JSON.stringify(unreadable[0])}`,
     );
-}
-
-function formatCell(v: unknown): string {
-    if (v == null) return "";
-    if (typeof v === "object") return JSON.stringify(v);
-    return String(v);
 }

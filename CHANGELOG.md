@@ -2,6 +2,31 @@
 
 ## [Unreleased]
 
+## [0.19.0] — 2026-10-19
+
+### Added
+
+- **Tables draw the way dark-slide writes them.** `TableElement` gains `style`
+  (`header`, `stripe`, `body` bands and table-wide keys), columns take `width`
+  and style keys, and a cell may be a `TableCell` object (`{text, fill, color,
+  bold, italic, underline, align, anchor, fontSize, fontFamily, borders}`). The
+  look resolves exactly as dark-slide's `TableResolver` does (cell > row >
+  column > band > table > theme > default; `false` means off), with the same
+  defaults: a header band in the theme accent, body text in the theme text
+  colour, a stripe from the theme surface, and a light rule round every cell.
+  Sizes are design pixels and scale with the slide like text. New types:
+  `TableColumn`, `TableCell`, `TableCellStyle`, `TableStyle`.
+
+### Fixed
+
+- **A table no longer sits in a scroll box.** It was drawn inside
+  `overflow: auto`, so on a slide (which cannot scroll) the last row hid behind
+  a scrollbar; it now fits its frame. A cell given as an object used to print
+  as raw JSON; it prints its text.
+- **What to do: nothing**, unless you relied on tables taking react-fancy's
+  default look: a table with no `style` now takes the theme's colours, as the
+  same deck does in PowerPoint.
+
 ## [0.18.0] — 2026-10-07
 
 ### Added

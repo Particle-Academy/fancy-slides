@@ -223,9 +223,45 @@ export interface CodeElement extends ElementBase {
  * header shows, and falls back to `key` when absent, as dark-slide’s writer
  * resolves it.
  */
-export interface TableColumn {
+/**
+ * A table cell's look: dark-slide's table cell model, drawn the same way here.
+ * Precedence: cell > row > column > band (header | stripe | body) > table >
+ * theme > default. `false` stops the chain and means off.
+ */
+export interface TableCellStyle {
+    fill?: string | false;
+    color?: string;
+    bold?: boolean;
+    italic?: boolean;
+    underline?: boolean;
+    align?: "left" | "center" | "right" | "justify";
+    anchor?: "top" | "middle" | "bottom";
+    /** Design px, scaled like text. */
+    fontSize?: number;
+    fontFamily?: string;
+    /** `false` for none, or one rule for every side: `{ color, width }` (width in design px). */
+    borders?: false | { color?: string; width?: number };
+}
+
+export interface TableColumn extends TableCellStyle {
     key: string;
     label?: string;
+    /** A fraction of the table (all widths <= 1) or a weight. */
+    width?: number;
+}
+
+/** A cell given as an object: its text plus its own style. */
+export interface TableCell extends TableCellStyle {
+    text: string;
+}
+
+export interface TableStyle extends TableCellStyle {
+    /** The header row's band (default: theme accent, white, bold); `false` for no header row. */
+    header?: TableCellStyle | false;
+    /** Every second body row's band (default: theme surface); `false` for none. */
+    stripe?: TableCellStyle | false;
+    /** Every body row's band. */
+    body?: TableCellStyle;
 }
 
 /**
@@ -244,8 +280,10 @@ export interface TableElement extends ElementBase {
     type: "table";
     /** Column definitions — `{ key, label }`. */
     columns: TableColumn[];
-    /** Row data — objects keyed by column `key`, or values in column order. */
+    /** Row data — objects keyed by column `key`, or values in column order. A value is text or a `TableCell`. */
     rows: TableRow[];
+    /** The table's look, as dark-slide writes it. */
+    style?: TableStyle;
 }
 
 export type ShapeKind = "rect" | "rounded-rect" | "ellipse" | "line" | "arrow" | "triangle";
