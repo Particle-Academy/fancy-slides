@@ -6,6 +6,8 @@ export type { SlideContextValue } from "./components/Slide/slide-context";
 
 export { SlideViewer } from "./components/SlideViewer";
 export type { SlideViewerProps } from "./components/SlideViewer";
+export { DeckFileView } from "./components/SlideViewer";
+export type { DeckFileViewProps } from "./components/SlideViewer";
 
 export { PresenterView } from "./components/PresenterView";
 export type { PresenterViewProps } from "./components/PresenterView";

@@ -2,6 +2,18 @@
 
 ## [Unreleased]
 
+## [0.22.0] — 2026-10-19
+
+### Added
+
+- **`DeckFileView`**: a .pptx in fancy-code's `FileViewer`. Register it once at
+  app start, `registerOfficeViewer("pptx", DeckFileView, { read: (b) => new
+  PptxReader().read(b) })`, and `FileViewer` shows the deck in the framed
+  `SlideViewer`, from the deck your server read (preferred) or by reading the
+  file in the browser. A document that is not a deck says so instead of
+  drawing an empty frame. No new dependency: the props match fancy-code's
+  without importing it.
+
 ## [0.21.1] — 2026-10-19
 
 ### Fixed
