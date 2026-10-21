@@ -2,6 +2,17 @@
 
 ## [Unreleased]
 
+### Security
+
+- **Dev toolchain only — no runtime change, nothing for consumers to do.** The
+  lockfile now resolves `vite` 8.3.5 (was 8.3.0), whose bundled
+  `launch-editor` fixes GHSA-587h-7wmj-h5pm (HIGH, `fs.existsSync()` check
+  bypassable on Windows), GHSA-698v-4r3x-3vcv (`escapeCmdArgs()` omits `%`
+  escaping on Windows) and GHSA-r825-w8mm-5pxw (editor CLI flag
+  misinterpretation). `vite` is only reached through the test/dev toolchain
+  and the published package does not ship our lockfile, so the exposure was
+  this repo's own dev server.
+
 ## [0.22.0] — 2026-10-19
 
 ### Added
