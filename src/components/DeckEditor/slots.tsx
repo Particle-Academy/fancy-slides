@@ -1,4 +1,4 @@
-import { type CSSProperties, type ReactNode } from "react";
+import { useEffect, useRef, type CSSProperties, type ReactNode } from "react";
 import type { SlideElement, TextElement } from "../../types";
 import { Slide } from "../Slide";
 import { SlideRail } from "../SlideRail";
@@ -6,6 +6,7 @@ import { EditorToolbar, type ToolbarApi } from "../EditorToolbar";
 import { ElementInspector } from "../ElementInspector";
 import { SpeakerNotes } from "../SpeakerNotes";
 import { useDeckEditor } from "./context";
+import { STAGE_SURFACE } from "../../utils/zoom";
 
 export interface DeckEditorToolbarProps {
     className?: string;
@@ -43,6 +44,8 @@ export function DeckEditorToolbar({ className, renderToolbar, extra }: DeckEdito
             onInsertTable={toolbarApi.insert.table}
             onPresent={toolbarApi.present}
             disabled={toolbarApi.disabled}
+            zoom={toolbarApi.zoom?.value}
+            onZoomChange={toolbarApi.zoom?.onChange}
             toolbarExtra={extra}
         />
     );
@@ -90,23 +93,75 @@ export interface DeckEditorCanvasProps {
     style?: CSSProperties;
 }
 
-/** The centered, editable slide canvas (drag / resize / inline-edit). */
+/**
+ * The editable slide canvas (drag / resize / inline-edit), drawn at the
+ * controller's zoom. It scrolls when the slide is bigger than the canvas.
+ *
+ * Zoom changes the width the slide is LAID OUT at (and `Slide` scales its
+ * contents from that width); nothing is CSS-transformed. So one screen pixel
+ * inside the slide is always `1 / renderedWidth` of it, and the drag / resize
+ * math in `Slide` stays exact at every zoom with no correction of its own.
+ */
 export function DeckEditorCanvas({ className, style }: DeckEditorCanvasProps) {
-    const { deck, theme, slide, ops, selectedElementId, setSelectedElementId, renderElement } = useDeckEditor();
+    const { deck, theme, slide, ops, selectedElementId, setSelectedElementId, renderElement, zoom, zoomScale, canvasWidth, setCanvasWidth } =
+        useDeckEditor();
+    const ref = useRef<HTMLDivElement>(null);
+
+    // Measure the room the slide has (content box: the p-6 padding excluded).
+    useEffect(() => {
+        const el = ref.current;
+        if (!el || typeof ResizeObserver === "undefined") return;
+        const ro = new ResizeObserver((entries) => {
+            for (const e of entries) setCanvasWidth(e.contentRect.width);
+        });
+        ro.observe(el);
+        return () => {
+            ro.disconnect();
+            setCanvasWidth(null);
+        };
+    }, [setCanvasWidth]);
+
+    const designWidth = theme.slideWidth ?? 1920;
+    const ratio = theme.aspectRatio ?? 16 / 9;
+    // The px width to lay the slide out at; null = let CSS size it (fit, or
+    // fit-width before the first measurement).
+    const slidePx = typeof zoom === "number" ? designWidth * zoom : zoom === "fit-width" && canvasWidth ? canvasWidth : null;
+    const fit = zoom === "fit";
+
+    // Fit keeps the pre-zoom frame exactly. Zoomed, the frame does not shrink
+    // and centres with margin:auto: flex centring would push the left and top
+    // of an oversized slide out of scroll reach.
+    const frameStyle: CSSProperties = fit
+        ? { width: "min(96%, 1280px)", aspectRatio: String(ratio), background: "white" }
+        : {
+              width: slidePx !== null ? `${slidePx}px` : "100%",
+              aspectRatio: String(ratio),
+              background: "white",
+              flexShrink: 0,
+              margin: "auto",
+          };
+
     return (
-        <div className={`flex flex-1 items-center justify-center overflow-auto p-6${className ? ` ${className}` : ""}`} style={style}>
+        <div
+            ref={ref}
+            // Focusable by click only (not in the tab order), so a click on the
+            // slide or the canvas moves focus INTO the editor and the zoom
+            // shortcuts reach it. Without this a click left focus on <body> and
+            // Ctrl/Cmd + = zoomed the page. Anything nearer that is focusable
+            // (the inline text editor) still takes focus itself.
+            tabIndex={-1}
+            className={`flex flex-1 ${fit ? "items-center justify-center " : ""}overflow-auto p-6 outline-none${className ? ` ${className}` : ""}`}
+            style={{ background: STAGE_SURFACE, ...style }}
+            data-fancy-slides-canvas=""
+            data-fancy-slides-zoom={typeof zoom === "number" ? String(zoom) : zoom}
+            data-fancy-slides-zoom-scale={zoomScale !== null ? String(Math.round(zoomScale * 10000) / 10000) : undefined}
+        >
             {slide ? (
-                <div
-                    className="rounded-lg shadow-xl"
-                    style={{
-                        width: "min(96%, 1280px)",
-                        aspectRatio: String(theme.aspectRatio ?? 16 / 9),
-                        background: "white",
-                    }}
-                >
+                <div className="rounded-lg shadow-xl" style={frameStyle}>
                     <Slide
                         slide={slide}
                         theme={deck.theme}
+                        width={slidePx ?? undefined}
                         editing
                         onElementContentChange={(eid, content) => ops.updateElement(slide.id, eid, { content, format: "markdown" } as Partial<TextElement>)}
                         onElementSelect={setSelectedElementId}

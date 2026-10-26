@@ -23,3 +23,6 @@ export type {
     DeckEditorNotesProps,
     DeckEditorStatusBarProps,
 } from "./slots";
+
+export { DECK_ZOOM_STEPS } from "../../utils/zoom";
+export type { DeckZoom } from "../../utils/zoom";

@@ -26,6 +26,7 @@ export {
     DeckEditorInspector,
     DeckEditorNotes,
     DeckEditorStatusBar,
+    DECK_ZOOM_STEPS,
 } from "./components/DeckEditor";
 export type {
     DeckEditorProps,
@@ -38,6 +39,7 @@ export type {
     DeckEditorInspectorProps,
     DeckEditorNotesProps,
     DeckEditorStatusBarProps,
+    DeckZoom,
 } from "./components/DeckEditor";
 
 export { SlideRail } from "./components/SlideRail";

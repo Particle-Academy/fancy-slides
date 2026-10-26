@@ -22,6 +22,7 @@ import { chartStarterOption, type ChartKind } from "../../utils/chart-presets";
 import { type ToolbarApi } from "../EditorToolbar";
 import { defaultElementRegistry } from "../../registry";
 import { DeckEditorContext, type DeckEditorContextValue } from "./context";
+import { normalizeZoom, stepZoom as nextZoomStep, zoomScale as scaleFor, type DeckZoom } from "../../utils/zoom";
 
 export interface DeckEditorProviderProps {
     /** Controlled deck — pair with `onChange`. */
@@ -54,6 +55,16 @@ export interface DeckEditorProviderProps {
     themes?: Theme[];
     /** Who mints new slide/element ids. Defaults to `"client"`. See {@link IdStrategy}. */
     idStrategy?: IdStrategy;
+    /**
+     * Controlled canvas zoom: `"fit"`, `"fit-width"`, or a scale of the slide's
+     * design size (`1` = 100%). Pair with `onZoomChange`. A view state: changing
+     * it never calls `onChange`.
+     */
+    zoom?: DeckZoom;
+    /** Initial zoom when uncontrolled. Default `"fit"` (the pre-zoom behaviour). */
+    defaultZoom?: DeckZoom;
+    /** Called when the person (toolbar, Ctrl/Cmd + `=` / `-` / `0`) asks for a zoom. */
+    onZoomChange?: (zoom: DeckZoom) => void;
     /** The composed editor — `DeckEditor.*` slots plus any app chrome. */
     children: ReactNode;
 }
@@ -79,6 +90,9 @@ export function DeckEditorProvider({
     renderElement = defaultElementRegistry,
     themes,
     idStrategy = "client",
+    zoom: controlledZoom,
+    defaultZoom = "fit",
+    onZoomChange,
     children,
 }: DeckEditorProviderProps) {
     const deck = value;
@@ -243,6 +257,27 @@ export function DeckEditorProvider({
 
     const themeList = themes ?? Object.values(builtinThemes);
 
+    // ─── Canvas zoom (view state; never touches the deck) ──────────────────
+    const [internalZoom, setInternalZoom] = useState<DeckZoom>(() => normalizeZoom(defaultZoom));
+    const zoomControlled = controlledZoom !== undefined;
+    const zoom = zoomControlled ? normalizeZoom(controlledZoom!) : internalZoom;
+    const [canvasWidth, setCanvasWidth] = useState<number | null>(null);
+    const resolvedTheme = useMemo(() => resolveTheme(deck.theme), [deck.theme]);
+    const designWidth = resolvedTheme.slideWidth ?? 1920;
+    const currentScale = scaleFor(zoom, canvasWidth, designWidth);
+    const setZoom = useCallback(
+        (z: DeckZoom) => {
+            const next = normalizeZoom(z);
+            if (!zoomControlled) setInternalZoom(next);
+            onZoomChange?.(next);
+        },
+        [zoomControlled, onZoomChange],
+    );
+    const stepZoom = useCallback(
+        (direction: 1 | -1) => setZoom(nextZoomStep(currentScale ?? (typeof zoom === "number" ? zoom : 1), direction)),
+        [setZoom, currentScale, zoom],
+    );
+
     // The toolbar action surface — handed to a custom `renderToolbar`, and the
     // source for the default toolbar too.
     const toolbarApi: ToolbarApi = useMemo(
@@ -252,14 +287,15 @@ export function DeckEditorProvider({
             insert,
             present: onPresent,
             disabled: !slide,
+            zoom: { value: zoom, onChange: setZoom },
         }),
-        [deck.title, deck.theme.name, themeList, ops, insert, onPresent, slide],
+        [deck.title, deck.theme.name, themeList, ops, insert, onPresent, slide, zoom, setZoom],
     );
 
     const ctx = useMemo<DeckEditorContextValue>(
         () => ({
             deck,
-            theme: resolveTheme(deck.theme),
+            theme: resolvedTheme,
             ops,
             slideId,
             setSlideId,
@@ -272,8 +308,14 @@ export function DeckEditorProvider({
             renderElement,
             themes: themeList,
             onPresent,
+            zoom,
+            setZoom,
+            stepZoom,
+            zoomScale: currentScale,
+            canvasWidth,
+            setCanvasWidth,
         }),
-        [deck, ops, slideId, setSlideId, slide, elementIdSelected, selectedElement, insert, toolbarApi, renderElement, themeList, onPresent],
+        [deck, resolvedTheme, ops, slideId, setSlideId, slide, elementIdSelected, selectedElement, insert, toolbarApi, renderElement, themeList, onPresent, zoom, setZoom, stepZoom, currentScale, canvasWidth],
     );
 
     return <DeckEditorContext.Provider value={ctx}>{children}</DeckEditorContext.Provider>;

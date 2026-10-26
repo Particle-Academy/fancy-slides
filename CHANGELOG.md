@@ -2,6 +2,48 @@
 
 ## [Unreleased]
 
+## [0.24.0] - 2026-10-26
+
+### Added
+
+- **Canvas zoom on `DeckEditor`.** `zoom` + `onZoomChange` (controlled) or
+  `defaultZoom` (uncontrolled), on `DeckEditor` and `DeckEditor.Provider`.
+  A `DeckZoom` is `"fit"`, `"fit-width"`, or a scale of the slide's design
+  size (`theme.slideWidth`): `1` is 100%, `2` is 200%. At 100% and above the
+  slide is drawn at its real size and the canvas scrolls, so a narrow panel
+  can still read a 10.5pt title. The toolbar gains a zoom select
+  (`data-fancy-slides-zoom-control`); `EditorToolbar.Zoom` adds it to a
+  composed toolbar. Inside the editor, Ctrl/Cmd + `=` / `-` step through
+  `DECK_ZOOM_STEPS` and Ctrl/Cmd + `0` returns to fit. The canvas carries
+  `data-fancy-slides-canvas`, `data-fancy-slides-zoom` and
+  `data-fancy-slides-zoom-scale`; `useDeckEditor()` exposes `zoom`,
+  `setZoom`, `stepZoom` and `zoomScale`. The canvas is click-focusable
+  (`tabIndex={-1}`: out of the tab order, no focus ring), so a click on the
+  slide or the canvas puts focus inside the editor and the shortcuts reach
+  it. Without that a click left focus on the page, and Ctrl/Cmd + `=` zoomed
+  the page instead. The inline text editor still takes its own focus, and
+  plain typing there is not intercepted. Zoom is a view state: it never
+  calls `onChange`. Dragging and resizing stay exact at every zoom, because
+  the slide is laid out at the zoomed width rather than CSS-scaled. The rail
+  thumbnails are unchanged. **What to do:** nothing. The default is `"fit"`,
+  which draws the slide exactly as before; nothing changes unless you opt in.
+
+### Fixed
+
+- **The area around a slide follows the host's light / dark mode.** The
+  `SlideViewer` letterbox (`.fs-viewer`) was painted with the deck's own
+  background, so in a dark host a white band surrounded a white slide and the
+  slide's edges vanished. The letterbox, and the `DeckEditor` canvas around
+  the slide, now use the host surface: zinc-100 (react-fancy's
+  `--color-secondary-100`) in light, zinc-950 under `.dark` or
+  `[data-theme="dark"]`. The slide keeps the deck's background. Re-point the
+  surround with `--fs-stage-surface`. **What to do:** import
+  `@particle-academy/fancy-slides/styles.css` if you don't already. The
+  dark value is set there. Without it, a `.dark` host still goes dark through
+  react-fancy's flipped `--color-secondary-100` (zinc-900), but
+  `[data-theme="dark"]` does not. In a light host the letterbox is now
+  zinc-100 rather than the deck colour.
+
 ## [0.23.0] - 2026-10-26
 
 ### Added

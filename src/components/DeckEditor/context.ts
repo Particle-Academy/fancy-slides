@@ -2,6 +2,7 @@ import { createContext, useContext, type ReactNode } from "react";
 import type { Deck, ShapeKind, Slide as SlideData, SlideElement, Theme } from "../../types";
 import type { DeckStateApi } from "../../hooks/use-deck-state";
 import type { ChartKind, ToolbarApi } from "../EditorToolbar";
+import type { DeckZoom } from "../../utils/zoom";
 
 /**
  * The editor's insert action surface — one entry per element type the toolbar
@@ -51,6 +52,17 @@ export interface DeckEditorContextValue {
     themes: Theme[];
     /** Present handler, if the host wired one. */
     onPresent?: () => void;
+    /** Canvas zoom (a view state -- never part of the deck). */
+    zoom: DeckZoom;
+    /** Request a zoom. Controlled: calls `onZoomChange`; uncontrolled: also applies it. Never calls `onChange`. */
+    setZoom: (zoom: DeckZoom) => void;
+    /** Step to the next fixed zoom above (`1`) or below (`-1`) the scale now drawn. */
+    stepZoom: (direction: 1 | -1) => void;
+    /** Rendered px per design px, or `null` while a fit mode is unmeasured. */
+    zoomScale: number | null;
+    /** The canvas's available content width in px (`null` until measured). Set by `DeckEditor.Canvas`. */
+    canvasWidth: number | null;
+    setCanvasWidth: (width: number | null) => void;
 }
 
 export const DeckEditorContext = createContext<DeckEditorContextValue | null>(null);

@@ -1,7 +1,8 @@
 import { createContext, useContext, type ReactNode } from "react";
-import { Button, Badge, Dropdown, Separator, Tooltip } from "@particle-academy/react-fancy";
+import { Button, Badge, Dropdown, Select, Separator, Tooltip } from "@particle-academy/react-fancy";
 import type { ShapeKind, Theme } from "../../types";
 import { builtinThemes } from "../../theme/default-theme";
+import { DECK_ZOOM_STEPS, zoomFromString, zoomToString, type DeckZoom } from "../../utils/zoom";
 
 /**
  * Starter chart-element preset. Picked from the toolbar Insert→Chart
@@ -28,6 +29,8 @@ export interface ToolbarApi {
     };
     present?: () => void;
     disabled: boolean;
+    /** Canvas zoom (view state). Absent when the host has no canvas to zoom. */
+    zoom?: { value: DeckZoom; onChange: (zoom: DeckZoom) => void };
 }
 
 export interface EditorToolbarProps {
@@ -56,6 +59,10 @@ export interface EditorToolbarProps {
     onPresent?: () => void;
     /** When true, disables every Insert button (e.g. when no slide is selected). */
     disabled?: boolean;
+    /** Current canvas zoom. The zoom control renders only when `onZoomChange` is given. */
+    zoom?: DeckZoom;
+    /** Request a canvas zoom. */
+    onZoomChange?: (zoom: DeckZoom) => void;
     /** Host-injected content rendered on the toolbar's trailing edge, left of Present. Sugar for `<EditorToolbar.Trailing>`. */
     toolbarExtra?: ReactNode;
     /**
@@ -115,6 +122,8 @@ export function EditorToolbar(props: EditorToolbarProps) {
         onPresent,
         disabled = false,
         toolbarExtra,
+        zoom = "fit",
+        onZoomChange,
     } = props;
 
     const themeList = themes ?? Object.values(builtinThemes);
@@ -135,6 +144,7 @@ export function EditorToolbar(props: EditorToolbarProps) {
             <Separator orientation="vertical" />
             <ThemePicker themeName={themeName} themes={themeList} onApply={onApplyTheme} />
             <div className="ml-auto flex items-center gap-2">
+                {onZoomChange && <ZoomControl value={zoom} onChange={onZoomChange} />}
                 {toolbarExtra}
                 <PresentButton onPresent={onPresent} />
             </div>
@@ -241,6 +251,36 @@ function ThemePicker({ themeName, themes, onApply }: { themeName?: string; theme
     );
 }
 
+const ZOOM_MODE_OPTIONS = [
+    { value: "fit", label: "Fit" },
+    { value: "fit-width", label: "Fit width" },
+];
+
+function zoomLabel(z: number): string {
+    return `${Math.round(z * 100)}%`;
+}
+
+/**
+ * The canvas zoom picker. A view control: it never edits the deck. Carries
+ * `data-fancy-slides-zoom-control` (and the current value) as its handle.
+ */
+function ZoomControl({ value, onChange }: { value: DeckZoom; onChange: (z: DeckZoom) => void }) {
+    const steps = typeof value === "number" && !DECK_ZOOM_STEPS.includes(value) ? [...DECK_ZOOM_STEPS, value].sort((a, b) => a - b) : DECK_ZOOM_STEPS;
+    const list = [...ZOOM_MODE_OPTIONS, ...steps.map((z) => ({ value: String(z), label: zoomLabel(z) }))];
+    return (
+        <div className="w-28 shrink-0" data-fancy-slides-zoom-control={zoomToString(value)} title="Zoom (Ctrl/Cmd + = / - / 0)">
+            <Select
+                size="sm"
+                label="Zoom"
+                labelHidden
+                list={list}
+                value={zoomToString(value)}
+                onValueChange={(v) => onChange(zoomFromString(v))}
+            />
+        </div>
+    );
+}
+
 function PresentButton({ onPresent }: { onPresent?: () => void }) {
     return (
         <Tooltip content="Present (F)">
@@ -300,6 +340,12 @@ EditorToolbar.Trailing = function Trailing({ children, present = true }: { child
             {present && <PresentButton onPresent={api.present} />}
         </div>
     );
+};
+
+EditorToolbar.Zoom = function Zoom() {
+    const api = useToolbar("Zoom");
+    if (!api.zoom) return null;
+    return <ZoomControl value={api.zoom.value} onChange={api.zoom.onChange} />;
 };
 
 EditorToolbar.Separator = function ToolbarSeparator() {

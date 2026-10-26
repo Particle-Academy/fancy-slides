@@ -8,6 +8,7 @@ import { useSlideKeyboard } from "../../hooks/use-slide-keyboard";
 import { totalBuildSteps } from "../../utils/builds";
 import { cn } from "../../utils/cn";
 import { defaultElementRegistry } from "../../registry";
+import { STAGE_SURFACE } from "../../utils/zoom";
 
 export interface SlideViewerProps {
     /** Deck to play. */
@@ -177,7 +178,11 @@ export function SlideViewer({
                 position: "relative",
                 width: "100%",
                 height: "100%",
-                background: blanked ? "#000000" : theme.colors?.background ?? "#000000",
+                // The letterbox is the HOST's surface, so it follows the host's light /
+                // dark mode; the slide paints the deck's own background on top.
+                // (It used to be the deck background: a white band around a
+                // white slide inside a dark dialog, with no visible edge.)
+                background: blanked ? "#000000" : STAGE_SURFACE,
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
