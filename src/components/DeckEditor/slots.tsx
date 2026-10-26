@@ -150,7 +150,10 @@ export function DeckEditorCanvas({ className, style }: DeckEditorCanvasProps) {
             // Ctrl/Cmd + = zoomed the page. Anything nearer that is focusable
             // (the inline text editor) still takes focus itself.
             tabIndex={-1}
-            className={`flex flex-1 ${fit ? "items-center justify-center " : ""}overflow-auto p-6 outline-none${className ? ` ${className}` : ""}`}
+            // min-h-0: take the remaining height and no more, so in full screen
+            // the canvas fills the viewport below the toolbar and scrolls
+            // inside itself instead of stretching the column.
+            className={`flex min-h-0 flex-1 ${fit ? "items-center justify-center " : ""}overflow-auto p-6 outline-none${className ? ` ${className}` : ""}`}
             style={{ background: STAGE_SURFACE, ...style }}
             data-fancy-slides-canvas=""
             data-fancy-slides-zoom={typeof zoom === "number" ? String(zoom) : zoom}

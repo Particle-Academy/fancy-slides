@@ -1,4 +1,5 @@
 import { type KeyboardEvent, type ReactNode } from "react";
+import type { FullScreenMode } from "@particle-academy/react-fancy";
 import type { Deck, DeckOp, SlideElement, Theme } from "../../types";
 import { type IdStrategy } from "../../hooks/use-deck-state";
 import { type ToolbarApi } from "../EditorToolbar";
@@ -71,6 +72,19 @@ export interface DeckEditorProps {
     defaultZoom?: DeckZoom;
     /** Called when the person asks for a zoom (toolbar, or Ctrl/Cmd + `=` / `-` / `0` inside the editor). */
     onZoomChange?: (zoom: DeckZoom) => void;
+    /**
+     * Controlled full screen: the editor covers the viewport in place (nothing
+     * remounts) and the canvas takes the extra room, so `"fit"` refits. Pair
+     * with `onFullScreenChange`. A view state: it never calls `onChange`. Same
+     * names and behaviour as react-fancy's `Editor`.
+     */
+    fullScreen?: boolean;
+    /** Initial full screen when uncontrolled. Default `false`. */
+    defaultFullScreen?: boolean;
+    /** Called with the requested state: the toolbar toggle, Escape, `setFullScreen`, or leaving the browser's own full screen. */
+    onFullScreenChange?: (fullScreen: boolean) => void;
+    /** `"overlay"` (default, never refused) or `"native"` (browser Fullscreen API, overlay on refusal). */
+    fullScreenMode?: FullScreenMode;
     className?: string;
 }
 
@@ -109,6 +123,10 @@ export function DeckEditor({
     zoom,
     defaultZoom,
     onZoomChange,
+    fullScreen,
+    defaultFullScreen,
+    onFullScreenChange,
+    fullScreenMode,
     className,
 }: DeckEditorProps) {
     return (
@@ -126,6 +144,10 @@ export function DeckEditor({
             zoom={zoom}
             defaultZoom={defaultZoom}
             onZoomChange={onZoomChange}
+            fullScreen={fullScreen}
+            defaultFullScreen={defaultFullScreen}
+            onFullScreenChange={onFullScreenChange}
+            fullScreenMode={fullScreenMode}
         >
             <EditorRoot className={className} deckId={value.id}>
                 {!hideToolbar && <DeckEditorToolbar renderToolbar={renderToolbar} extra={toolbarExtra} />}
@@ -146,23 +168,34 @@ export function DeckEditor({
 }
 
 /**
- * The default layout's root. Owns the zoom shortcuts, scoped to focus inside
- * the editor so the page's own Ctrl/Cmd + `=` / `-` / `0` (browser zoom) is
- * untouched everywhere else. The editor had no shortcuts before this, so there
- * is nothing for them to clash with.
+ * The default layout's root, and the element that goes full screen. Owns the
+ * zoom shortcuts, scoped to focus inside the editor so the page's own
+ * Ctrl/Cmd + `=` / `-` / `0` (browser zoom) is untouched everywhere else.
+ *
+ * Full screen is react-fancy's `useFullScreen` (run by the provider): its
+ * `targetProps` carry the ref, the `data-fullscreen*` handles, the overlay
+ * style and the Escape / Tab handler. The root is already a flex column, so in
+ * the overlay the toolbar keeps its height and the panel row takes the rest.
  */
 function EditorRoot({ className, deckId, children }: { className?: string; deckId: string; children: ReactNode }) {
-    const { setZoom, stepZoom } = useDeckEditor();
+    const { setZoom, stepZoom, fullScreenTargetProps } = useDeckEditor();
     const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
-        if (!(e.ctrlKey || e.metaKey) || e.altKey) return;
-        if (e.key === "=" || e.key === "+") stepZoom(1);
-        else if (e.key === "-" || e.key === "_") stepZoom(-1);
-        else if (e.key === "0") setZoom("fit");
-        else return;
-        e.preventDefault();
+        if ((e.ctrlKey || e.metaKey) && !e.altKey) {
+            let handled = true;
+            if (e.key === "=" || e.key === "+") stepZoom(1);
+            else if (e.key === "-" || e.key === "_") stepZoom(-1);
+            else if (e.key === "0") setZoom("fit");
+            else handled = false;
+            if (handled) {
+                e.preventDefault();
+                return;
+            }
+        }
+        fullScreenTargetProps.onKeyDown(e);
     };
     return (
         <div
+            {...fullScreenTargetProps}
             className={`fs-editor flex h-full w-full flex-col bg-zinc-100 dark:bg-zinc-950 ${className ?? ""}`}
             data-fancy-slides-editor={deckId}
             onKeyDown={onKeyDown}

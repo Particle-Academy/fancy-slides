@@ -1,4 +1,5 @@
 import { createContext, useContext, type ReactNode } from "react";
+import type { FullScreenTargetProps } from "@particle-academy/react-fancy";
 import type { Deck, ShapeKind, Slide as SlideData, SlideElement, Theme } from "../../types";
 import type { DeckStateApi } from "../../hooks/use-deck-state";
 import type { ChartKind, ToolbarApi } from "../EditorToolbar";
@@ -63,6 +64,18 @@ export interface DeckEditorContextValue {
     /** The canvas's available content width in px (`null` until measured). Set by `DeckEditor.Canvas`. */
     canvasWidth: number | null;
     setCanvasWidth: (width: number | null) => void;
+    /** Whether the editor is full screen (a view state -- never part of the deck). */
+    fullScreen: boolean;
+    /** Request full screen on or off. Controlled: calls `onFullScreenChange`; uncontrolled: also applies it. */
+    setFullScreen: (fullScreen: boolean) => void;
+    /**
+     * react-fancy's `useFullScreen().targetProps` for the editor: the ref,
+     * `data-fullscreen*` handles, the overlay style and the Escape / Tab
+     * handler. `<DeckEditor>` spreads it on its own root; a bespoke
+     * composition under `<DeckEditor.Provider>` spreads it on the element that
+     * should go full screen (merge your own `style` / `onKeyDown`).
+     */
+    fullScreenTargetProps: FullScreenTargetProps<HTMLDivElement>;
 }
 
 export const DeckEditorContext = createContext<DeckEditorContextValue | null>(null);

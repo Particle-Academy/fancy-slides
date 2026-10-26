@@ -1,5 +1,5 @@
 import { createContext, useContext, type ReactNode } from "react";
-import { Button, Badge, Dropdown, Select, Separator, Tooltip } from "@particle-academy/react-fancy";
+import { Button, Badge, Dropdown, FullScreenToggle, Select, Separator, Tooltip } from "@particle-academy/react-fancy";
 import type { ShapeKind, Theme } from "../../types";
 import { builtinThemes } from "../../theme/default-theme";
 import { DECK_ZOOM_STEPS, zoomFromString, zoomToString, type DeckZoom } from "../../utils/zoom";
@@ -145,6 +145,7 @@ export function EditorToolbar(props: EditorToolbarProps) {
             <ThemePicker themeName={themeName} themes={themeList} onApply={onApplyTheme} />
             <div className="ml-auto flex items-center gap-2">
                 {onZoomChange && <ZoomControl value={zoom} onChange={onZoomChange} />}
+                <FullScreenButton />
                 {toolbarExtra}
                 <PresentButton onPresent={onPresent} />
             </div>
@@ -281,6 +282,25 @@ function ZoomControl({ value, onChange }: { value: DeckZoom; onChange: (z: DeckZ
     );
 }
 
+/**
+ * The full-screen toggle: react-fancy's shared `FullScreen.Toggle`, which reads
+ * the nearest `FullScreenProvider` (mounted by `DeckEditor.Provider`). Renders
+ * nothing outside one, so a standalone `EditorToolbar` shows no dead button.
+ * Carries `data-fancy-slides-fullscreen-toggle` next to react-fancy's own
+ * `data-react-fancy-fullscreen-toggle`.
+ */
+function FullScreenButton() {
+    // The shared toggle sets no text colour, so it inherits the page's: black
+    // on the dark toolbar in a host that leaves body colour unset. Take the
+    // same soft text the toolbar's ghost Buttons use.
+    return (
+        <FullScreenToggle
+            data-fancy-slides-fullscreen-toggle=""
+            className="text-[color:var(--fancy-text-soft,var(--color-zinc-700))] dark:text-[color:var(--fancy-text-soft-dark,var(--color-zinc-300))]"
+        />
+    );
+}
+
 function PresentButton({ onPresent }: { onPresent?: () => void }) {
     return (
         <Tooltip content="Present (F)">
@@ -346,6 +366,12 @@ EditorToolbar.Zoom = function Zoom() {
     const api = useToolbar("Zoom");
     if (!api.zoom) return null;
     return <ZoomControl value={api.zoom.value} onChange={api.zoom.onChange} />;
+};
+
+/** The full-screen toggle for a composed toolbar. Renders nothing outside a `DeckEditor` / `DeckEditor.Provider`. */
+EditorToolbar.FullScreen = function FullScreen() {
+    useToolbar("FullScreen");
+    return <FullScreenButton />;
 };
 
 EditorToolbar.Separator = function ToolbarSeparator() {

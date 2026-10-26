@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { FullScreenProvider, useFullScreen, type FullScreenMode } from "@particle-academy/react-fancy";
 import type {
     ChartElement,
     CodeElement,
@@ -65,6 +66,22 @@ export interface DeckEditorProviderProps {
     defaultZoom?: DeckZoom;
     /** Called when the person (toolbar, Ctrl/Cmd + `=` / `-` / `0`) asks for a zoom. */
     onZoomChange?: (zoom: DeckZoom) => void;
+    /**
+     * Controlled full screen. Pair with `onFullScreenChange`. A view state: it
+     * never calls `onChange`. Runs on react-fancy's `useFullScreen`, the same
+     * behaviour as `Editor`.
+     */
+    fullScreen?: boolean;
+    /** Initial full screen when uncontrolled. Default `false`. */
+    defaultFullScreen?: boolean;
+    /** Called with the requested state: the toolbar toggle, Escape, `setFullScreen`, or leaving the browser's own full screen. */
+    onFullScreenChange?: (fullScreen: boolean) => void;
+    /**
+     * `"overlay"` (default): the editor covers the viewport in place, lifted
+     * into the browser top layer where supported. `"native"`: the browser
+     * Fullscreen API, falling back to the overlay when refused.
+     */
+    fullScreenMode?: FullScreenMode;
     /** The composed editor — `DeckEditor.*` slots plus any app chrome. */
     children: ReactNode;
 }
@@ -93,6 +110,10 @@ export function DeckEditorProvider({
     zoom: controlledZoom,
     defaultZoom = "fit",
     onZoomChange,
+    fullScreen: controlledFullScreen,
+    defaultFullScreen = false,
+    onFullScreenChange,
+    fullScreenMode = "overlay",
     children,
 }: DeckEditorProviderProps) {
     const deck = value;
@@ -278,6 +299,17 @@ export function DeckEditorProvider({
         [setZoom, currentScale, zoom],
     );
 
+    // ─── Full screen (view state; react-fancy's primitive, not our own) ────
+    // The editor root goes over the viewport IN PLACE: nothing is portalled or
+    // remounted, so selection, the inline text editor and the canvas's
+    // ResizeObserver all survive, and "fit" refits to the bigger canvas.
+    const fs = useFullScreen<HTMLDivElement>({
+        fullScreen: controlledFullScreen,
+        defaultFullScreen,
+        onFullScreenChange,
+        mode: fullScreenMode,
+    });
+
     // The toolbar action surface — handed to a custom `renderToolbar`, and the
     // source for the default toolbar too.
     const toolbarApi: ToolbarApi = useMemo(
@@ -314,9 +346,42 @@ export function DeckEditorProvider({
             zoomScale: currentScale,
             canvasWidth,
             setCanvasWidth,
+            fullScreen: fs.fullScreen,
+            setFullScreen: fs.setFullScreen,
+            fullScreenTargetProps: fs.targetProps,
         }),
-        [deck, resolvedTheme, ops, slideId, setSlideId, slide, elementIdSelected, selectedElement, insert, toolbarApi, renderElement, themeList, onPresent, zoom, setZoom, stepZoom, currentScale, canvasWidth],
+        [
+            deck,
+            resolvedTheme,
+            ops,
+            slideId,
+            setSlideId,
+            slide,
+            elementIdSelected,
+            selectedElement,
+            insert,
+            toolbarApi,
+            renderElement,
+            themeList,
+            onPresent,
+            zoom,
+            setZoom,
+            stepZoom,
+            currentScale,
+            canvasWidth,
+            fs.fullScreen,
+            fs.setFullScreen,
+            fs.targetProps,
+        ],
     );
 
-    return <DeckEditorContext.Provider value={ctx}>{children}</DeckEditorContext.Provider>;
+    // FullScreenProvider makes `FullScreen.Toggle` (and `EditorToolbar.FullScreen`)
+    // work anywhere inside, and redirects descendant react-fancy Portals (the
+    // toolbar's dropdowns, the zoom select, tooltips) into the editor while it
+    // is full screen, so they are not left under the overlay.
+    return (
+        <DeckEditorContext.Provider value={ctx}>
+            <FullScreenProvider value={fs}>{children}</FullScreenProvider>
+        </DeckEditorContext.Provider>
+    );
 }

@@ -2,6 +2,43 @@
 
 ## [Unreleased]
 
+## [0.25.0] - 2026-10-26
+
+### Added
+
+- **Full screen on `DeckEditor`.** `fullScreen` + `onFullScreenChange`
+  (controlled) or `defaultFullScreen` (uncontrolled), plus `fullScreenMode`
+  (`"overlay"`, the default, or `"native"`), on `DeckEditor` and
+  `DeckEditor.Provider`. The names and behaviour are react-fancy `Editor`'s,
+  because it is the same primitive: react-fancy's `useFullScreen`. The editor
+  root covers the viewport in place, lifted into the browser top layer where
+  the popover API exists, so a transformed or filtered ancestor cannot trap
+  it. Nothing remounts, so selection, an open inline text edit and the canvas
+  measurement survive. The canvas takes the height left under the toolbar, and
+  `"fit"` refits to the wider canvas. Escape leaves, focus goes back to where it
+  was, and page scroll is locked meanwhile. The toolbar gains a toggle right
+  after the zoom control (`data-fancy-slides-fullscreen-toggle`, plus
+  react-fancy's `data-react-fancy-fullscreen-toggle`). `EditorToolbar.FullScreen`
+  adds it to a composed toolbar and renders nothing outside a `DeckEditor`.
+  `toolbarExtra` stays in the toolbar, so a host's Save / Cancel is still
+  reachable in full screen. Toolbar dropdowns open inside the editor while it is
+  full screen, not under it. `useDeckEditor()` exposes `fullScreen`,
+  `setFullScreen` and `fullScreenTargetProps`; a bespoke composition under
+  `DeckEditor.Provider` spreads the last one on the element that should go full
+  screen. Full screen is a view state and never calls `onChange`. The editor
+  has no `F` shortcut, and this adds none. `F` stays the viewer's / Present
+  mode's. **What to do:** nothing. The editor starts out of full screen; the
+  only visible change is the new toolbar button.
+
+### Changed
+
+- **The `@particle-academy/react-fancy` peer floor moved from 5.47.0 to
+  5.61.1** (`>=5.61.1 <6.0.0`), because full screen is react-fancy's
+  `useFullScreen` / `FullScreenProvider` / `FullScreen.Toggle`, and 5.61.1 is
+  the first release with the top-layer overlay. Older 5.x has no such export.
+  **What to do:** if your app pins react-fancy below 5.61.1, upgrade it within
+  5.x. No react-fancy API changed between the two.
+
 ## [0.24.0] - 2026-10-26
 
 ### Added
