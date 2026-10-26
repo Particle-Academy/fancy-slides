@@ -2,6 +2,27 @@
 
 ## [Unreleased]
 
+## [0.23.0] - 2026-10-26
+
+### Added
+
+- **`onNormalize` on `DeckEditor` / `DeckEditor.Provider`.** Called once per
+  deck id, after mount, with the deck `migrateDeck` upgraded, when the deck you
+  passed is on an older schema (or has no `version`, as every deck dark-slide
+  reads back from a pptx does). It is not an edit. Persist it if you want the
+  stamped shape. Leave it out and the editor migrates nothing.
+
+### Fixed
+
+- **Opening a deck no longer calls `onChange`.** The editor stamped the schema
+  `version` onto any deck that lacked one and reported that as an edit, once on
+  mount and twice under StrictMode. A host could not tell "opened" from
+  "edited": it marked a deck dirty, or saved it, the moment it was shown.
+  `onChange` now fires only for a change a person or an op made. **What to do:**
+  nothing, unless you relied on that first `onChange` to persist the upgraded
+  deck. In that case, pass the same handler as `onNormalize`, or call
+  `migrateDeck()` yourself when you load the deck.
+
 ### Security
 
 - **Dev toolchain only — no runtime change, nothing for consumers to do.** The

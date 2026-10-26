@@ -15,7 +15,10 @@ import {
 export interface DeckEditorProps {
     /** Controlled deck — pair with `onChange`. */
     value: Deck;
+    /** Called only for a change a person or an op made -- never on mount. */
     onChange: (next: Deck) => void;
+    /** Once per deck id, when an older-schema deck was migrated forward. Not an edit. See `DeckEditorProvider`. */
+    onNormalize?: (normalized: Deck) => void;
     /** Called after every mutation with the op that produced it — feed into AgentPanel / audit log. */
     onOp?: (op: DeckOp) => void;
     /** Called when the user clicks Present. The host decides how to open the SlideViewer. */
@@ -77,6 +80,7 @@ export interface DeckEditorProps {
 export function DeckEditor({
     value,
     onChange,
+    onNormalize,
     onOp,
     onPresent,
     selectedSlideId,
@@ -96,6 +100,7 @@ export function DeckEditor({
         <DeckEditorProvider
             value={value}
             onChange={onChange}
+            onNormalize={onNormalize}
             onOp={onOp}
             onPresent={onPresent}
             selectedSlideId={selectedSlideId}

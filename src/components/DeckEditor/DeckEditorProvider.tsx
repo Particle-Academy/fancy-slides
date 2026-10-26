@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type {
     ChartElement,
     CodeElement,
@@ -26,7 +26,14 @@ import { DeckEditorContext, type DeckEditorContextValue } from "./context";
 export interface DeckEditorProviderProps {
     /** Controlled deck — pair with `onChange`. */
     value: Deck;
+    /** Called only for a change a person or an op made -- never on mount. */
     onChange: (next: Deck) => void;
+    /**
+     * Called once per deck id, after mount, when the deck is on an older schema
+     * and `migrateDeck` upgraded it. Not an edit: persist it if you want the
+     * stamped shape, or ignore it. Omit it and nothing is migrated.
+     */
+    onNormalize?: (normalized: Deck) => void;
     /** Called after every mutation with the op that produced it — feed into AgentPanel / audit log. */
     onOp?: (op: DeckOp) => void;
     /** Called when the user clicks Present. The host decides how to open the SlideViewer. */
@@ -64,6 +71,7 @@ export interface DeckEditorProviderProps {
 export function DeckEditorProvider({
     value,
     onChange,
+    onNormalize,
     onOp,
     onPresent,
     selectedSlideId: controlledSlideId,
@@ -76,13 +84,20 @@ export function DeckEditorProvider({
     const deck = value;
     const ops = useDeckState({ value: deck, onChange, onOp, idStrategy });
 
-    // Migrate an older-schema deck forward on load and emit one normalized
-    // onChange so the consumer can persist the upgraded shape. migrateDeck is
-    // idempotent (returns the same ref once current), so this won't loop. Keyed
-    // on deck id: a freshly-loaded deck re-runs the migration.
+    // Opening a deck is not editing it. This used to migrate the deck forward
+    // and report the result through `onChange`, so any deck without the
+    // current `version` stamp (every deck dark-slide reads back from a pptx)
+    // fired onChange on mount -- twice under StrictMode -- and a host could not
+    // tell "opened" from "edited". onChange is now reserved for changes a
+    // person or an op made; a host that wants the upgraded shape gets it from
+    // `onNormalize` (or calls `migrateDeck` itself). Reported once per deck id:
+    // the ref survives StrictMode's effect replay, so the replay is a no-op.
+    const normalizedFor = useRef<string | null>(null);
     useEffect(() => {
+        if (!onNormalize || normalizedFor.current === value.id) return;
+        normalizedFor.current = value.id;
         const migrated = migrateDeck(value);
-        if (migrated !== value) onChange(migrated);
+        if (migrated !== value) onNormalize(migrated);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [value.id]);
 
