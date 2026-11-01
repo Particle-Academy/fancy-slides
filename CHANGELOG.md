@@ -6,6 +6,10 @@
 
 - Test environment: jsdom moved to 30 (devDependency only), dropping the deprecated `whatwg-encoding`. Consumer action: none.
 
+### Security
+
+- Dev-only lockfile update: `vitest` 4.1.11 to 4.1.12, which brings `@vitest/mocker` 4.1.12 (GHSA-qxg6-89mg-rqv8, GHSA-xp26-3454-mjgp). Test tooling only; nothing ships in the package. Consumer action: none.
+
 ## [0.25.0] - 2026-10-26
 
 ### Added
