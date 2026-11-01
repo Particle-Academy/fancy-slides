@@ -2,7 +2,11 @@
 
 ## [Unreleased]
 
+## [0.25.1] - 2026-11-01
+
 ### Changed
+
+- **The `@particle-academy/react-fancy` peer range now also accepts 6.x** (`>=5.61.1 <6.0.0` to `>=5.61.1 <7.0.0`). react-fancy 6.0.0 makes `Button` default to `type="button"` instead of submitting an enclosing form (Change Council CC-fancy-0003). Audited for that: its `Button`s (editor toolbar, element inspector, slide rail) are actions and none sits inside a form. No `Button` needed `type="submit"` and no `PromptInput` is used, so the package behaves the same on 5 and 6. On 6 its `Button`s also stop submitting a host form you happen to render it inside. The devDependency moved to `^6.0.0`, so this package's own suite, typecheck and build now run against 6. Widening only adds candidates, so the react-fancy you already have still resolves. **Consumer action:** none on react-fancy 5; on react-fancy 6 it works as-is.
 
 - Test environment: jsdom moved to 30 (devDependency only), dropping the deprecated `whatwg-encoding`. Consumer action: none.
 
