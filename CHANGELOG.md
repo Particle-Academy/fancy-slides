@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Changed
+
+- Test environment: jsdom moved to 30 (devDependency only), dropping the deprecated `whatwg-encoding`. Consumer action: none.
+
 ## [0.25.0] - 2026-10-26
 
 ### Added
