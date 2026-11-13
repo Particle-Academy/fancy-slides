@@ -195,7 +195,7 @@ export function PresenterView({
                                 aspectRatio: String(theme.aspectRatio ?? 16 / 9),
                                 borderRadius: 6,
                                 border: "1px dashed rgba(255,255,255,0.2)",
-                                color: "rgba(255,255,255,0.4)",
+                                color: MUTED_FG,
                                 fontSize: 13,
                             }}
                         >
@@ -224,7 +224,7 @@ export function PresenterView({
                         }}
                     >
                         {slide?.notes?.trim() || (
-                            <span style={{ color: "rgba(255,255,255,0.35)", fontStyle: "italic" }}>
+                            <span style={{ color: MUTED_FG, fontStyle: "italic" }}>
                                 No notes for this slide.
                             </span>
                         )}
@@ -265,6 +265,13 @@ export function PresenterView({
     );
 }
 
+/**
+ * Secondary text on the presenter's #0b1220 ground. 60% of the foreground is
+ * the lowest that stays AA here: the 40% and 35% this replaced measured 3.7:1
+ * and 3.2:1 (axe color-contrast).
+ */
+const MUTED_FG = "rgba(248,250,252,0.6)";
+
 function SectionLabel({ children }: { children: ReactNode }) {
     return (
         <div
@@ -289,7 +296,7 @@ function StatusChip({ label, children }: { label: string; children: ReactNode })
                     fontSize: 10,
                     textTransform: "uppercase",
                     letterSpacing: "0.08em",
-                    color: "rgba(248,250,252,0.4)",
+                    color: MUTED_FG,
                 }}
             >
                 {label}

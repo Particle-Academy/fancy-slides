@@ -9,6 +9,14 @@
   when the fancy-labs lab has certified that exact version and commit. Consumers
   do nothing; this changes how releases are cut, not what the package does.
 
+### Fixed
+
+- **`PresenterView`'s secondary text is readable** (axe `color-contrast`, lab
+  run 601, K31). The status-bar labels (Slide, Elapsed, Clock) were the
+  foreground at 40% on the presenter's `#0b1220`, 3.7:1 at 10px; "End of deck"
+  (40%) and "No notes for this slide." (35%) were the same kind of thing. All
+  now use 60%, at least 4.5:1. Nothing to do on upgrade.
+
 ## [0.25.1] - 2026-11-01
 
 ### Changed
