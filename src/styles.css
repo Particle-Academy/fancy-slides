@@ -14,7 +14,11 @@
   box-sizing: border-box;
 }
 
-.fs-viewer:focus {
+/* A pointer focus (a click on the viewer) stays ringless; a keyboard focus
+ * draws the kit focus ring, which SlideViewer injects with its own styles so
+ * it holds whether or not this file is imported. This used to be a bare
+ * `.fs-viewer:focus { outline: none }`, which hid the keyboard ring too. */
+.fs-viewer:focus:not(:focus-visible) {
   outline: none;
 }
 

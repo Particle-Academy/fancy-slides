@@ -432,4 +432,13 @@ const TRANSITION_KEYFRAMES = `
 .fs-viewer:hover .fs-nav, .fs-viewer .fs-nav:focus-visible { opacity: 1; }
 .fs-viewer .fs-nav:hover { background: rgba(15, 23, 42, 0.75) !important; }
 @media (hover: none) { .fs-viewer .fs-nav { opacity: 1; } }
+.fs-viewer:focus-visible {
+    outline-style: solid;
+    outline-width: 2px;
+    outline-color: var(--fancy-focus, var(--color-blue-500, #3b82f6));
+    outline-offset: -2px;
+}
+:where(.dark, [data-theme="dark"]) .fs-viewer:focus-visible {
+    outline-color: var(--fancy-focus-dark, var(--color-blue-400, #60a5fa));
+}
 `;

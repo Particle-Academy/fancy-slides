@@ -11,6 +11,15 @@
 
 ### Fixed
 
+- **The viewer shows keyboard focus.** `SlideViewer`'s root (`.fs-viewer`,
+  `tabIndex={0}`, also what `DeckFileView` renders) had no visible focus:
+  `styles.css` set `.fs-viewer:focus { outline: none }`, so tabbing to it drew
+  nothing (measured in Chromium with real Tab presses at 375, 768 and 1280 px).
+  A keyboard focus now draws the kit focus ring, a 2px inset outline in
+  `var(--fancy-focus)` (`var(--fancy-focus-dark)` under `.dark` /
+  `[data-theme="dark"]`), injected by the component so it holds with or without
+  `styles.css`. A mouse click on the viewer still draws no ring. Nothing to do on
+  upgrade; set `--fancy-focus` to re-colour it.
 - **`PresenterView`'s secondary text is readable** (axe `color-contrast`, lab
   run 601, K31). The status-bar labels (Slide, Elapsed, Clock) were the
   foreground at 40% on the presenter's `#0b1220`, 3.7:1 at 10px; "End of deck"
