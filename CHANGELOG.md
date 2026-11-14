@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.25.2] - 2026-11-13
+
 ### Changed
 
 - **Releases need a lab-run certificate.** `publish.yml` gains a read-only
