@@ -2,7 +2,7 @@
 
 [![Fancified](art/fancified.svg)](https://particle.academy)
 
-Presentation editor + web viewer for the Fancy UI set. Google-Slides-style deck
+Presentation editor + web viewer for the Fancy Dev Kit. Google-Slides-style deck
 authoring with a JSON-friendly schema, full keyboard-driven viewer, and an agent
 bridge so LLMs can compose decks directly.
 
@@ -169,7 +169,7 @@ MIT
 
 ---
 
-## ⭐ Star Fancy UI
+## ⭐ Star Fancy Dev Kit
 
 If this package is useful to you, a quick ⭐ on the repo really helps us build a better kit. Thank you!
 
